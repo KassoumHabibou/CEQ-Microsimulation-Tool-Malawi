@@ -1,0 +1,120 @@
+/* HOMEPAGE STYLING ---------------------*/ 
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Make all elements respect box model */
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
+/* section 1: the hero at top of homepage */ 
+.hero {
+  background-image: linear-gradient(to bottom right, #0078D4, rgba(0, 0, 0, 0)), url("Malawia_large.png");
+  height: 100vh; /* full viewport height */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  margin: 0;
+  padding: 0;
+
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+/* formatting the header within the hero */
+.hero h1 {
+  font-size: 36px;
+  font-weight: 700;
+  color: white;
+  margin: 0; /* remove spacing */
+}
+
+.hero h2 {
+  font-size: 18px;
+  color: white;
+  margin: 5px 0 15px 0; /* top: 5px, bottom: 15px */
+}
+
+/* Footer container */
+.phs-teal-container {
+  background-color: #006D77;
+  margin: 0;
+  padding: 0;
+}
+
+/* Optional: remove any spacing inside container content */
+.container-inner-contents {
+  margin: 0;
+  padding: 0;
+}
+
+/* Responsive border for links */
+@media (max-width: 800px) {
+  .links-item > a {
+    border-left-style: solid;
+    padding-left: 10px;
+  }
+}
+
+.links-item > a {
+  color: white;
+  font-size: 16px;
+  text-decoration: none;
+}
+
+.bottom-links > a {
+  color: white;
+  font-size: 16px;
+}
+
+.links-item {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  color: #F2F2F2;
+  margin: 0; /* removed spacing */
+  padding: 10px;
+}
+
+.bottom-links {
+  display: flex;
+  flex-direction: row;
+  column-gap: 20px;
+  margin: 0;
+  padding: 15px;
+}
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.footer-left,
+.footer-center {
+  display: flex;
+  flex-direction: column;
+  color: white;
+  margin-right: 30px;
+}
+
+.footer-left a,
+.footer-center a {
+  color: white;
+  text-decoration: none;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: flex-end;
+}
