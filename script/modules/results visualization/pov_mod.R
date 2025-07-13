@@ -38,10 +38,10 @@ pov_mod_ui <- function(id) {
                             #indicator filter (note this is a module)
                             selectizeInput(ns("pov_line"), 
                                            label = "Poverty line",
-                                           choices = c("National Poverty line" = "national_pov_line",
-                                                       "Poverty line for lower income countries (2.15 USD per day PPP)" = "lower_pov_line",
-                                                       "Poverty line lower middle income countries (3.65 USD per day PPP)" = "middle_pov_line"),
-                                           selected = "national_pov_line")
+                                           choices = c("National Poverty line" = "National poverty line (454 MWK per day)",
+                                                       "Poverty line for lower income countries (2.15 USD per day PPP)" = "Lower income class poverty line (656.7 MKW per day)",
+                                                       "Poverty line lower middle income countries (3.65 USD per day PPP)" = "Middle income class poverty line (1114.8 MKW per day)"),
+                                           selected = "National poverty line (454 MWK per day)")
 
                           )),
 
@@ -130,16 +130,18 @@ pov_mod_server <- function(id, simulated_data, root_session) {
     # create reactive data - filtering by selected indicator
     filtered_microsim_data <- reactive({
       req(simulated_data())
-      print(str(simulated_data()))
-      temp_data <- simulated_data()
+      
+      #print(str(simulated_data()))
+      
+      simulated_data()
       
       # Apply filters based on user inputs
       if(!is.null(input$parameter_filter)) {
-        temp_data <- temp_data %>% filter(Parameter == input$parameter_filter)
+        temp_data <- simulated_data() %>% filter(Parameter == input$parameter_filter)
       }
       
       if(!is.null(input$areas_filter)) {
-        temp_data <- temp_data %>% filter(Area == input$areas_filter)
+        temp_data <- simulated_data() %>% filter(Area == input$areas_filter)
       }
       
       temp_data
