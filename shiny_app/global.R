@@ -15,7 +15,8 @@
 ### List of required packages
 required_packages <- c("tidyverse", "dplyr","haven","here","DescTools","labelled",
                        "survey","wINEQ","Hmisc","purrr","bslib","shiny","tidyr",
-                       "shinyFeedback","phsstyles","bsicons","shinyjs","cicerone")
+                       "shinyFeedback","phsstyles","bsicons","shinyjs","cicerone",
+                       "shinyjs","highcharter","shinycssloaders","reactable")
 
 ### Check if packages are installed
 missing_packages <- setdiff(required_packages, installed.packages()[,"Package"])
@@ -42,13 +43,15 @@ data_folder <- "/input/Data"
 output_folder <- "/output"
 script_path <- paste0(data_folder, "/Script")
 
-# 2. Sourcing modules, narrative text functions  ------------------------
-list.files(paste0(here(),script_path, "/modules"), full.names = TRUE, recursive = TRUE) %>% 
+# 2. Sourcing modules functions  ------------------------
+list.files(paste0(here(),"/script/modules/results visualization"), full.names = TRUE, recursive = TRUE) %>% 
   map(~ source(.))
 
-list.files(paste0(here(),script_path, "/narrative"), full.names = TRUE, recursive = TRUE) %>% 
+list.files(paste0(here(),"/script/modules/buttons"), full.names = TRUE, recursive = TRUE) %>% 
   map(~ source(.))
 
+source(paste0(here(),"/script/graph_functions.R"))
+source(paste0(here(),"/script/01_simulated function.R"))
 
 # 3. Required datafiles ------------------------------------------------------------
 bl_df <- readRDS(paste0(here(),output_folder,"/Shiny Data/before_data_wtht_na.rds"))
@@ -60,32 +63,11 @@ bl_cncpts <- readRDS(paste0(here(),output_folder,"/Shiny Data/Baseline_data_tab.
 
 
 
-#module UI function ----
-#name is mandatory but icon and class are optional
-navigation_button_modUI <- function(button_id, button_name, button_icon=NULL, class = NULL){
-  ns <- shiny::NS(button_id)
-  tagList(
-    shiny::actionButton(inputId= ns("button_nav"), 
-                        label = button_name, 
-                        class = class,
-                        icon = button_icon))}
-
-
-#module server function ----
-
-navigation_button_modSERVER <- function(id, nav_id, parent_session) {
-  shiny::moduleServer(id, function(input, output, session) {
-    
-    shiny::observeEvent(input$button_nav, {
-      
-      # navigate to the tab
-      bslib::nav_select(id="nav",
-                        selected = nav_id,
-                        session = parent_session)
-      
-    }) 
-  }) #close moduleServer
-} #close server
+# List of possible selected output
+# HSC partnership names - also used as the choices for an additional parent area filter 
+# when intermediate zone/localities are selected to reduce the number of IZ/localities
+pov_parameter_list <- sort(unique(bl_cncpts$Parameter)) 
+pov_area_list <- sort(unique(bl_cncpts$Area)) 
 
 
 
