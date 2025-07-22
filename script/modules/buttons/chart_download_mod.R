@@ -29,7 +29,7 @@ download_chart_mod_ui <- function(id) {
               sourceWidth: message.width,
               sourceHeight: message.height,
               type: 'image/png',
-              filename: 'chart_export'
+              filename: 'chart_export_poverty'
             });
           }
         });"

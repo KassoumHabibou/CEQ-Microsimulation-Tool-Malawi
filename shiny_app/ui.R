@@ -18,7 +18,7 @@ library(shinyjs)
 page_navbar(
   # controlling how items grow/shrink when browser different sizes
   fillable = TRUE,
-  window_title = "Malawi CEQ",
+  window_title = "Malawi CEQ Microsimulation Tool",
   # id required for profile buttons - works with profile_homepage_btn_mod to control navigation
   id = "nav",
   lang = "en",
@@ -39,7 +39,10 @@ page_navbar(
     # required for guided tours
     use_cicerone(),
     # required to specify formatting (particularly of landing page)
-    includeCSS("www/styles.css")
+    includeCSS("www/styles.css"),
+    
+    # Add this for toast notifications
+    useToastr()  # Initialize toastr
   ),
   
   #######################################.
@@ -155,6 +158,7 @@ page_navbar(
       nav_panel(title = "Poverty line", value = "poverty_line", "Poverty line"),
       nav_spacer(), # add space to navbar 
       # In your UI, replace the loadingButton with:
+
       nav_item(
         conditionalPanel(
           condition = "input.tax_rate_lowest != 0 || input.tax_rate_second != 25 || input.tax_rate_middle != 30 || input.tax_rate_top != 35",
@@ -173,10 +177,9 @@ page_navbar(
     navset_pill(id = "sub_tabs_results",  
                  # nolint
                 # --- Direct tax tab ---
-                nav_panel(title = "Poverty", value = "poverty", pov_mod_ui("sim_poverty")
-                          
-                ),
-                
+                nav_panel(title = "Poverty", value = "poverty", pov_mod_ui("sim_poverty")),
+                # --- Geospatial analysis tab ---geo_pov_mod_ui("sim_geo_poverty")
+                nav_panel(title = "Geospatial", value = "geospatial", geo_pov_mod_ui("sim_geo_poverty")),
                 # --- Other placeholder tabs ---
                 nav_panel(title = "Income distribution", value = "income_distribution", "Income distribution"),
                 nav_panel(title = "Inequality", value = "Inequality", "Inequality"),
@@ -185,8 +188,6 @@ page_navbar(
                 nav_panel(title = "Poverty line", value = "poverty_line", "Poverty line"),
                 nav_spacer()
                 )
-                # conditionalPanel(condition = "input.simulate_button > 0", h2("View"))
-                #  )
                 
          # end navset_pill_list
   ), # end nav_panel "Results choice"

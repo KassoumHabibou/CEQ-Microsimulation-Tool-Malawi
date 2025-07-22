@@ -12,12 +12,6 @@
 pov_mod_ui <- function(id) {
   ns <- NS(id)
   
-  # Get global variables if they exist
-  pov_parameter_list <- if (exists("pov_parameter_list")) pov_parameter_list else 
-    c("Rate of poverty", "Number of poor", "Poverty gap", "Poverty severity")
-  
-  pov_area_list <- if (exists("pov_area_list")) pov_area_list else 
-    c("Country", "Urban", "Rural")
   
   tagList(
     bslib::layout_sidebar(
@@ -38,14 +32,15 @@ pov_mod_ui <- function(id) {
                             #indicator filter (note this is a module)
                             selectizeInput(ns("pov_line"), 
                                            label = "Poverty line",
-                                           choices = c("National Poverty line" = "National poverty line (454 MWK per day)",
-                                                       "Poverty line for lower income countries (2.15 USD per day PPP)" = "Lower income class poverty line (656.7 MKW per day)",
-                                                       "Poverty line lower middle income countries (3.65 USD per day PPP)" = "Middle income class poverty line (1114.8 MKW per day)"),
+                                           choices = c( "National poverty line (454 MWK per day)" =  "National poverty line (454 MWK per day)",
+                                                       "Poverty line for lower income countries (2.15 USD or 656.7 MKW per day PPP)" = "Lower income class poverty line (656.7 MKW per day)",
+                                                       "Poverty line for lower middle income countries (3.65 USD or 1114.8 MKW per day PPP)" = "Middle income class poverty line (1114.8 MKW per day)"),
                                            selected = "National poverty line (454 MWK per day)")
 
                           )),
 
                           # accordion panel with geography filters
+                        
                           accordion_panel(
                             value = "specification_filter_panel",
                             "Specify",
@@ -131,17 +126,20 @@ pov_mod_server <- function(id, simulated_data, root_session) {
     filtered_microsim_data <- reactive({
       req(simulated_data())
       
-      #print(str(simulated_data()))
       
-      simulated_data()
+      temp_data <- simulated_data()
       
       # Apply filters based on user inputs
       if(!is.null(input$parameter_filter)) {
-        temp_data <- simulated_data() %>% filter(Parameter == input$parameter_filter)
+        temp_data <- temp_data %>% filter(Parameter == input$parameter_filter)
       }
       
       if(!is.null(input$areas_filter)) {
-        temp_data <- simulated_data() %>% filter(Area == input$areas_filter)
+        temp_data <- temp_data %>% filter(Area == input$areas_filter)
+      }
+
+      if(!is.null(input$pov_line)) {
+        temp_data <- temp_data %>% filter(`Poverty line` == input$pov_line)
       }
       
       temp_data
@@ -159,8 +157,9 @@ pov_mod_server <- function(id, simulated_data, root_session) {
 
       # display 3 x titles
       div(
-        tags$h5(first(filtered_microsim_data()$Parameter), class = "chart-header"), # selected Parameter
-        tags$h6("National Poverty line") # selected 
+        tags$h5(paste0("Parameter : ",first(filtered_microsim_data()$Parameter)), class = "chart-header"), # selected Parameter
+        tags$h6(paste0("Area : ",first(filtered_microsim_data()$Area))), # selected 
+        tags$h6(paste0("Poverty line : ",first(filtered_microsim_data()$`Poverty line`))) # selected 
       )
 
     })
@@ -174,34 +173,25 @@ pov_mod_server <- function(id, simulated_data, root_session) {
     output$pov_chart <- renderHighchart({
       req(filtered_microsim_data())
       
-      # Create a simple bar chart if create_pov_bar_chart is not available
-      if (exists("create_pov_bar_chart")) {
-        create_pov_bar_chart(data = filtered_microsim_data(),
+        create_pov_bar_chart(filtered_microsim_data(),
                          xaxis_col = "Income",
-                         yaxis_col = "Current Policy",
-                         colour_palette = "simd") %>% 
+                         yaxis_col = "Current Policy") %>% 
           hc_exporting(
-            filename = paste0("Poverty - ", first(filtered_microsim_data()$Parameter)),
+            filename = paste0("Poverty - ", first(filtered_microsim_data()$Parameter), " - ",
+                              first(filtered_microsim_data()$Area), " - ",
+                              first(filtered_microsim_data()$`Poverty line`)),
             chartOptions = list(
-              title = list(text = paste0(first(filtered_microsim_data()$Parameter))),
-              subtitle = list(text = 'National Poverty line')
+              title = list(text = input$parameter_filter),
+              subtitle = list(
+                text = paste0(
+                  "Area : ", input$areas_filter,
+                  "<br>",
+                  "Poverty line : ",  input$pov_line
+                ),
+                useHTML = TRUE  
+              ))
             )
-          )
-      } else {
-        # Fallback chart
-        highchart() %>%
-          hc_chart(type = "column") %>%
-          hc_xAxis(categories = filtered_microsim_data()$Income) %>%
-          hc_yAxis(title = list(text = "Value")) %>%
-          hc_series(
-            list(
-              name = "Current Policy",
-              data = filtered_microsim_data()$`Current Policy`
-            )
-          ) %>%
-          hc_title(text = paste0("Poverty - ", first(filtered_microsim_data()$Parameter))) %>%
-          hc_subtitle(text = "National Poverty line")
-      }
+
     })
 
 
@@ -209,14 +199,17 @@ pov_mod_server <- function(id, simulated_data, root_session) {
     output$pov_table <- renderReactable({
       req(filtered_microsim_data())
       
+      df_table <- filtered_microsim_data() %>% 
+        select(Income, `Pre-reform`, `Current Policy`) %>% 
+        mutate(diff = `Pre-reform` - `Current Policy`)
+      
       # Use the filtered data directly
-      reactable(filtered_microsim_data(),
+      reactable(df_table,
                 columns = list(
                   Income = colDef(name = "Income concepts"),
-                  Parameter = colDef(name = "Parameter"),
-                  Area = colDef(name = "Area"),
-                  `Poverty line` = colDef(name = "Poverty line"),
-                  `Current Policy` = colDef(name = "Current Policy")
+                  `Pre-reform` = colDef(name = "Pre-reform"),
+                  `Current Policy` = colDef(name = "Current Policy"),
+                  diff = colDef(name = "Difference")
                 )
       )
 

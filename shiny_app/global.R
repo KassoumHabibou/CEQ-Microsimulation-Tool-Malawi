@@ -16,8 +16,10 @@
 required_packages <- c("tidyverse", "dplyr","haven","here","DescTools","labelled",
                        "survey","wINEQ","Hmisc","purrr","bslib","shiny","tidyr",
                        "shinyFeedback","phsstyles","bsicons","shinyjs","cicerone",
-                       "shinyjs","highcharter","shinycssloaders","reactable")
+                       "shinyjs","highcharter","shinycssloaders","reactable","sf",
+                       "leaflet","htmlwidgets","shinytoastr")
 
+#jsfile <- "https://rawgit.com/rowanwins/leaflet-easyPrint/gh-pages/dist/bundle.js" 
 ### Check if packages are installed
 missing_packages <- setdiff(required_packages, installed.packages()[,"Package"])
 
@@ -33,13 +35,13 @@ lapply(setdiff(required_packages,"plyr"), library, character.only = TRUE)
 rm(list = ls())
 
 # Set vector size to maximum value
-mem.maxVSize(vsize = Inf)
+# mem.maxVSize(vsize = Inf)
 
 ################################################################################
 ######################## Importing the datasets ################################
 ################################################################################
 ## Set file-paths
-data_folder <- "/input/Data"
+data_folder <- "/input"
 output_folder <- "/output"
 script_path <- paste0(data_folder, "/Script")
 
@@ -54,13 +56,15 @@ source(paste0(here(),"/script/graph_functions.R"))
 source(paste0(here(),"/script/01_simulated function.R"))
 
 # 3. Required datafiles ------------------------------------------------------------
-bl_df <- readRDS(paste0(here(),output_folder,"/Shiny Data/before_data_wtht_na.rds"))
-bl_cncpts <- readRDS(paste0(here(),output_folder,"/Shiny Data/Baseline_data_tab.rds"))
+bl_df <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_data.rds"))
+bl_cncpts <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_pov_estimates.rds"))
+bl_geo_cncpts <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_geo_pov_estimates.rds"))
 
 
+######################## Loading the datasets ###############################
 # shapefiles (for map) 
-#ca_bound <- readRDS("data/CA_boundary.rds") # Council area
-
+mlw_bound_region <- read_sf(paste0(here(),output_folder,"/Shapefile/region_geo.shp"))
+mlw_bound_district <- read_sf(paste0(here(),output_folder,"/Shapefile/district_geo.shp"))
 
 
 # List of possible selected output
@@ -68,13 +72,8 @@ bl_cncpts <- readRDS(paste0(here(),output_folder,"/Shiny Data/Baseline_data_tab.
 # when intermediate zone/localities are selected to reduce the number of IZ/localities
 pov_parameter_list <- sort(unique(bl_cncpts$Parameter)) 
 pov_area_list <- sort(unique(bl_cncpts$Area)) 
-
-
-
-
-# module ui function
-# icon and description of the profile are optional arguments
-
+pov_geo_area_list <- sort(unique(bl_geo_cncpts$Area)) 
+pov_geo_income_list <- sort(unique(bl_geo_cncpts$Income)) 
 
 
 # 5. Dashboard theme ---------------------------------------------------------------

@@ -34,6 +34,13 @@ mem.maxVSize(vsize = Inf)
 data_folder <- "/input/Data"
 output_folder <- "/output"
 
+# Cleaning shapefiles (for map) 
+mlw_bound <- read_sf(paste0(here(),"/input/Shapefile/gadm41_MWI_shp/gadm41_MWI_1.shp"))
+
+correspondance_table <- readxl::read_excel("input/Shapefile/Correspondance table.xlsx", 
+                                           col_types = c("text", "text", "text", "numeric", "text", 
+                                                         "text", "text", "text", "text"))
+
 hh_data_path  <- paste0(data_folder,"/Household Surveys/IHS5 2019-20/Household")
 int_data_path <- paste0(data_folder, "/Intermediate")
 pdata_path <- paste0(output_folder, "/Output")
@@ -73,8 +80,25 @@ HH_MOD_A <- HH_MOD_A %>% mutate(reside = recode(reside,
 )) %>% 
   rename(hhid= HHID)
 
+# 
+# before_data <- HH_MOD_A %>% 
+#   left_join(yc, by=c("hhid"), multiple = "all") %>% 
+#   left_join(yd,by=c("hhid","pid")) %>% 
+#   left_join(yf,by=c("hhid","pid")) %>% 
+#   left_join(yg, by=c("hhid","pid")) %>% 
+#   left_join(yn,by=c("hhid","pid")) %>% 
+#   left_join(yp,by=c("hhid","pid")) %>% 
+#   left_join(agric_subsidy,by=c("hhid")) %>% 
+#   left_join(corp_tax,by=c("hhid","pid")) %>% 
+#   left_join(education,by=c("hhid","pid")) %>% 
+#   left_join(elec_subsidy,by=c("hhid","pid")) %>% 
+#   left_join(fuel_subsidy,by=c("hhid")) %>% 
+#   left_join(health,by=c("hhid","pid")) %>% 
+#   left_join(indirect_tax,by=c("hhid")) %>% 
+#   left_join(paye_tax,by=c("hhid","pid")) %>% 
+#   left_join(users_fee,by=c("hhid","pid"))  
 
-before_data <- HH_MOD_A %>% 
+baseline_data <- HH_MOD_A %>% 
   left_join(yc, multiple = "all") %>% 
   left_join(yd) %>% 
   left_join(yf) %>% 
@@ -91,41 +115,45 @@ before_data <- HH_MOD_A %>%
   left_join(paye_tax) %>% 
   left_join(users_fee)  
 
-write_rds(before_data, paste0(here(),output_folder, "/Shiny Data/before.rds"))
-# 
-# before_data_wtht_na <- before_data %>% mutate(across(c(  "yd_pc", "ym_hh", "yp_hh", "yn_hh", "yg_hh", "yt_hh", "yd_hh", "yc_hh",
-#                                                  "yf_hh", "coupons_hh", "i_coupons", "tfc_ben", "i_health", "illness_cat",
-#                                                  "gov_expense_individual", "donor_expense_individual", "hh_expense_individual",
-#                                                  "i_Health_hh", "gov_expense_hh", "donor_expense_hh", "hh_expense_hh",
-#                                                  "illness_cat_hh", "gov_expense_HIV", "gov_expense_NCD", "gov_expense_Repr",
-#                                                  "gov_expense_Mal", "gov_expense_TB", "gov_expense_NutritionalD", "gov_expense_Other",
-#                                                  "donor_expense_HIV", "donor_expense_NCD", "donor_expense_Repr", "donor_expense_Mal",
-#                                                  "donor_expense_TB", "donor_expense_NutritionalD", "donor_expense_Other",
-#                                                  "hh_expense_HIV", "hh_expense_NCD", "hh_expense_Repr", "hh_expense_Mal",
-#                                                  "hh_expense_TB", "hh_expense_NutritionalD", "hh_expense_Other", "edu_unit_cost_total",
-#                                                  "i_edu_unit_cost_total", "i_Education_hh", "gov_edu_preschool", "gov_edu_primary",
-#                                                  "gov_edu_secondary", "gov_edu_postsecondary", "gov_edu_tertiary", "gov_edu_masterphd",
-#                                                  "at_school", "type_school", "Education_fee", "Health_fee", "Users_fee", "illness",
-#                                                  "Users_fee_hh", "Education_fee_hh", "Health_fee_hh", "i_Usersfee", "i_Usersfee_hh",
-#                                                  "i_Education_fee", "i_Education_fee_hh", "i_Health_fee", "i_Health_fee_hh",
-#                                                  "dtx_payt_hh", "i_dtx_payt_hh", "p_tax", "i_ptax", "tran_1", "tran_2", "tran_32",
-#                                                  "tran_31", "tran_4", "tran_8", "tran_91", "tran_13", "tran_11", "tran_12",
-#                                                  "dct_hh", "dtr_nct_hh"), ~ replace_na(.x, 0)))
+# write_rds(before_data, paste0(here(),output_folder, "/Shiny Data/before.rds"))
+# c(  "yd_pc", "ym_hh", "yp_hh", "yn_hh", "yg_hh", "yt_hh", "yd_hh", "yc_hh",
+# "yf_hh", "coupons_hh", "i_coupons", "tfc_ben", "i_health", "illness_cat",
+# "gov_expense_individual", "donor_expense_individual", "hh_expense_individual",
+# "i_Health_hh", "gov_expense_hh", "donor_expense_hh", "hh_expense_hh",
+# "illness_cat_hh", "gov_expense_HIV", "gov_expense_NCD", "gov_expense_Repr",
+# "gov_expense_Mal", "gov_expense_TB", "gov_expense_NutritionalD", "gov_expense_Other",
+# "donor_expense_HIV", "donor_expense_NCD", "donor_expense_Repr", "donor_expense_Mal",
+# "donor_expense_TB", "donor_expense_NutritionalD", "donor_expense_Other",
+# "hh_expense_HIV", "hh_expense_NCD", "hh_expense_Repr", "hh_expense_Mal",
+# "hh_expense_TB", "hh_expense_NutritionalD", "hh_expense_Other", "edu_unit_cost_total",
+# "i_edu_unit_cost_total", "i_Education_hh", "gov_edu_preschool", "gov_edu_primary",
+# "gov_edu_secondary", "gov_edu_postsecondary", "gov_edu_tertiary", "gov_edu_masterphd",
+# "at_school", "type_school", "Education_fee", "Health_fee", "Users_fee", "illness",
+# "Users_fee_hh", "Education_fee_hh", "Health_fee_hh", "i_Usersfee", "i_Usersfee_hh",
+# "i_Education_fee", "i_Education_fee_hh", "i_Health_fee", "i_Health_fee_hh",
+# "dtx_payt_hh", "i_dtx_payt_hh", "p_tax", "i_ptax", "tran_1", "tran_2", "tran_32",
+# "tran_31", "tran_4", "tran_8", "tran_91", "tran_13", "tran_11", "tran_12",
+# "dct_hh", "dtr_nct_hh")
+# write_rds(baseline_data, paste0(here(),output_folder, "/Shiny Data/baseline_data.rds"))
 
 
-before_data_wtht_na <- before_data
-write_rds(before_data_wtht_na, paste0(here(),output_folder, "/Shiny Data/before_data_wtht_na.rds"))
-
-
-#before_data_wtht_na <- readRDS("~/Dropbox/PhD thesis/Internship World Bank/CEQ - Dashboard/CEQ - assessement tool/output/Shiny Data/before_data_wtht_na.rds")
+#baseline_data <- readRDS("~/Dropbox/PhD thesis/Internship World Bank/CEQ - Dashboard/CEQ - assessement tool/output/Shiny Data/baseline_data.rds")
 source(paste0(here(),"/script/intermediate/1.PID_PAYE_FS.R"))
 
-before_data_wtht_na <- curr_df %>% select(hhid, pid, i22_return_a) %>% right_join(before_data_wtht_na, by=c("hhid"="hhid", "pid"="pid"))
+######################## Data wrangling ###############################
+
+baseline_data <- curr_df %>% select(hhid, pid, i22_return_a) %>% right_join(baseline_data, by=c("hhid"="hhid", "pid"="pid"))
+
+
+# 
+
+baseline_data <- baseline_data[!is.na(baseline_data$hhsize),]
+baseline_data <- baseline_data %>% mutate(across(everything(), ~ replace_na(.x, 0)))
 
 ######################## Computing some agregates concepts ##############################
 
 # Creating household education variables
-before_data_wtht_na <- before_data_wtht_na %>%
+baseline_data <- baseline_data %>%
   group_by(hhid) %>%
   mutate(
     educ_preschool_hh = sum(gov_edu_preschool, na.rm = TRUE),
@@ -139,7 +167,7 @@ before_data_wtht_na <- before_data_wtht_na %>%
 
 
 # Creating household health variables
-before_data_wtht_na <- before_data_wtht_na %>%
+baseline_data <- baseline_data %>%
   group_by(hhid) %>%
   mutate(
     ## Government expenses
@@ -172,13 +200,13 @@ before_data_wtht_na <- before_data_wtht_na %>%
   ungroup()
 
 # Taxes by household
-before_data_wtht_na <- before_data_wtht_na %>%
+baseline_data <- baseline_data %>%
   group_by(hhid) %>%
   mutate(p_tax_hh = sum(p_tax, na.rm = TRUE)) %>%
   ungroup()
 
 # Health and education expenditures by household
-before_data_wtht_na <- before_data_wtht_na %>%
+baseline_data <- baseline_data %>%
   mutate(
     health_hh = gov_expense_hh %>% structure(label="Health (household)"),
     educ_hh = rowSums(across(c(
@@ -189,7 +217,7 @@ before_data_wtht_na <- before_data_wtht_na %>%
 
 
 #  Rename variables
-before_data_wtht_na <- before_data_wtht_na %>%
+baseline_data <- baseline_data %>%
   rename(
     dct_gov_hh = tran_11,
     dct_ngo_hh = tran_12,
@@ -212,7 +240,7 @@ before_data_wtht_na <- before_data_wtht_na %>%
 
 
 # Select variables to keep
-before_data_wtht_na <- before_data_wtht_na %>%
+baseline_data <- baseline_data %>%
   select(hhid, pid, ea_id, region, district, reside, 
          dtr_nct_hh, dtr_frmz_hh, dtr_nfra_hh, dtr_masaf_hh, dtr_ffwk_hh,
          dtr_ifwp_hh, dtr_ses_hh, dtr_tes_hh, dtr_onc_hh,
@@ -233,10 +261,10 @@ before_data_wtht_na <- before_data_wtht_na %>%
          Users_fee_hh, Education_fee_hh, Health_fee_hh, pline_mod) 
 
 # Remove missing values in hhid
-before_data_wtht_na <- before_data_wtht_na[!is.na(before_data_wtht_na$weight),] 
+baseline_data <- baseline_data[!is.na(baseline_data$weight),] 
   
 # Taxes rate
-before_data_wtht_na <- before_data_wtht_na %>%
+baseline_data <- baseline_data %>%
   mutate(
     dtx_all_hh = (dtx_PIT_hh + dtx_payt_hh) %>% structure(label="All direct taxes paid, HH total"),
     dtr_all_hh = (dct_hh + dtr_nct_hh) %>% structure(label= "All direct transfers, HH total"), 
@@ -251,18 +279,18 @@ before_data_wtht_na <- before_data_wtht_na %>%
 # ********************************************************************************
 
 
-before_data_wtht_na <- before_data_wtht_na %>%
+baseline_data <- baseline_data %>%
   mutate(
     # Replace and generate household income variables
-    yg_hh = yd_hh + dtx_all_hh,
-    yn_hh = yd_hh - dtr_all_hh
+    yg_hh = (yd_hh + dtx_all_hh) %>% structure(label = "Gross Income"),
+    yn_hh =( yd_hh - dtr_all_hh) %>% structure(label = "Net Market Income")
   ) %>% 
   mutate(
-    yp_hh = yg_hh - dtr_all_hh,
-    yc_hh = yd_hh + sub_all_hh - itx_all_hh
+    yp_hh = (yd_hh + dtx_all_hh - dtr_all_hh) %>% structure(label="Market Income plus pensions"),
+    yc_hh = (yd_hh + sub_all_hh - itx_all_hh) %>% structure(label = "Consumable Income")
   ) %>% 
   mutate(
-    yf_hh = yc_hh + educ_hh + health_hh - Users_fee_hh
+    yf_hh = (yd_hh + sub_all_hh - itx_all_hh + educ_hh + health_hh - Users_fee_hh) %>% structure(label = "Final Income")
   ) %>% 
   mutate(
     
@@ -278,26 +306,27 @@ before_data_wtht_na <- before_data_wtht_na %>%
          pline_mod_middle = 1114.8*365)
 # Source: https://databankfiles.worldbank.org/public/ddpext_download/poverty/987B9C90-CB9F-4D93-AE8C-750588BF00QA/current/Global_POVEQ_MWI.pdf
 # Based on available historical data, the average exchange rate for the Malawian Kwacha to the US Dollar in 2019 was approximately 730 MWK to 1 USD.
-write_rds(before_data_wtht_na, paste0(here(),output_folder, "/Shiny Data/before_data_wtht_na.rds"))
+write_rds(baseline_data, paste0(here(),output_folder, "/Shiny Data/baseline_data.rds"))
 
 
-compute_poverty_indicators_bl <- function(curr_pline, area_level, before_data_wtht_na) {
+get_pov_indicator_bl <- function(curr_pline, curr_area, df) {
   
-  if(area_level == "Country"){
-    tempdf <- before_data_wtht_na
+  if(curr_area == "Country"){
+    curr_df <- df
   }else{
-    tempdf <- before_data_wtht_na %>% 
-      filter(reside==area_level)
+    curr_df <- df %>% 
+      filter(reside==curr_area)
   }
+
   # Poverty Gap indicator as proportion of poverty line
-  tempdf <- tempdf %>%
+  curr_df <- curr_df %>%
     mutate(
       # Individual poverty gap (how much income falls short of poverty line)
       pov_gap_yd_pc = pmax(0, !!sym(curr_pline) - yd_pc) / !!sym(curr_pline),
       pov_gap_yp_pc = pmax(0, !!sym(curr_pline) - yp_pc) / !!sym(curr_pline),
       pov_gap_yg_pc = pmax(0, !!sym(curr_pline) - yg_pc) / !!sym(curr_pline),
-      pov_gap_yc_pc = pmax(0, !!sym(curr_pline) - yc_pc) / !!sym(curr_pline),
       pov_gap_yn_pc = pmax(0, !!sym(curr_pline) - yn_pc) / !!sym(curr_pline),
+      pov_gap_yc_pc = pmax(0, !!sym(curr_pline) - yc_pc) / !!sym(curr_pline),
       pov_gap_yf_pc = pmax(0, !!sym(curr_pline) - yf_pc) / !!sym(curr_pline)
   
     ) %>% 
@@ -315,51 +344,52 @@ compute_poverty_indicators_bl <- function(curr_pline, area_level, before_data_wt
   
   
   # Compute poverty headcount ratio
-  poverty_headcount_ratio <- tempdf %>%
-    summarise(
-      pov_rate_yd_pc = sum(weight[yd_pc < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
+  poverty_headcount_ratio <- curr_df %>%
+    dplyr::summarise(
       pov_rate_yp_pc  = sum(weight[yp_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
-      pov_rate_yg_pc  = sum(weight[yg_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
       pov_rate_yn_pc  = sum(weight[yn_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
+      pov_rate_yg_pc  = sum(weight[yg_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
+      pov_rate_yd_pc  = sum(weight[yd_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
       pov_rate_yc_pc  = sum(weight[yc_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
       pov_rate_yf_pc  = sum(weight[yf_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE)
     )
   
   # Compute number of poor 
-  nbr_poor <- tempdf %>%
-    summarise(
-      nbr_poor_yd_pc  = sum(weight[yd_pc  < !!sym(curr_pline)], na.rm = TRUE),
+  nbr_poor <- curr_df %>%
+    dplyr::summarise(
       nbr_poor_yp_pc  = sum(weight[yp_pc  < !!sym(curr_pline)], na.rm = TRUE),
-      nbr_poor_yg_pc  = sum(weight[yg_pc  < !!sym(curr_pline)], na.rm = TRUE),
       nbr_poor_yn_pc  = sum(weight[yn_pc  < !!sym(curr_pline)], na.rm = TRUE),
+      nbr_poor_yg_pc  = sum(weight[yg_pc  < !!sym(curr_pline)], na.rm = TRUE),
+      nbr_poor_yd_pc  = sum(weight[yd_pc  < !!sym(curr_pline)], na.rm = TRUE),
       nbr_poor_yc_pc  = sum(weight[yc_pc  < !!sym(curr_pline)], na.rm = TRUE),
       nbr_poor_yf_pc  = sum(weight[yf_pc  < !!sym(curr_pline)], na.rm = TRUE)
     )
   
   # Poverty Gap
   poverty_gap <- tibble(
-      pov_gap_yd_pc  = weighted.mean(tempdf$pov_gap_yd_pc,  tempdf$weight, na.rm = TRUE)*100,
-      pov_gap_yp_pc  = weighted.mean(tempdf$pov_gap_yp_pc,  tempdf$weight, na.rm = TRUE)*100,
-      pov_gap_yg_pc  = weighted.mean(tempdf$pov_gap_yg_pc,  tempdf$weight, na.rm = TRUE)*100,
-      pov_gap_yn_pc  = weighted.mean(tempdf$pov_gap_yn_pc,  tempdf$weight, na.rm = TRUE)*100,
-      pov_gap_yc_pc  = weighted.mean(tempdf$pov_gap_yc_pc,  tempdf$weight, na.rm = TRUE)*100,
-      pov_gap_yf_pc  = weighted.mean(tempdf$pov_gap_yf_pc,  tempdf$weight, na.rm = TRUE)*100
-    )
+    pov_gap_yp_pc  = weighted.mean(curr_df$pov_gap_yp_pc,  curr_df$weight, na.rm = TRUE)*100,
+    pov_gap_yn_pc  = weighted.mean(curr_df$pov_gap_yn_pc,  curr_df$weight, na.rm = TRUE)*100,
+    pov_gap_yg_pc  = weighted.mean(curr_df$pov_gap_yg_pc,  curr_df$weight, na.rm = TRUE)*100,
+    pov_gap_yd_pc  = weighted.mean(curr_df$pov_gap_yd_pc,  curr_df$weight, na.rm = TRUE)*100,
+    pov_gap_yc_pc  = weighted.mean(curr_df$pov_gap_yc_pc,  curr_df$weight, na.rm = TRUE)*100,
+    pov_gap_yf_pc  = weighted.mean(curr_df$pov_gap_yf_pc,  curr_df$weight, na.rm = TRUE)*100
+  )
   
   # Poverty severity index - squared poverty gap measure
   poverty_sev <- tibble(
-      pov_sev_yd_pc  = weighted.mean(tempdf$pov_gap_yd_pc_sqrd,  tempdf$weight, na.rm = TRUE),
-      pov_sev_yp_pc  = weighted.mean(tempdf$pov_gap_yp_pc_sqrd,  tempdf$weight, na.rm = TRUE),
-      pov_sev_yg_pc  = weighted.mean(tempdf$pov_gap_yg_pc_sqrd,  tempdf$weight, na.rm = TRUE),
-      pov_sev_yn_pc  = weighted.mean(tempdf$pov_gap_yn_pc_sqrd,  tempdf$weight, na.rm = TRUE),
-      pov_sev_yc_pc  = weighted.mean(tempdf$pov_gap_yc_pc_sqrd,  tempdf$weight, na.rm = TRUE),
-      pov_sev_yf_pc  = weighted.mean(tempdf$pov_gap_yf_pc_sqrd,  tempdf$weight, na.rm = TRUE)
-    )
+    pov_sev_yp_pc  = weighted.mean(curr_df$pov_gap_yp_pc_sqrd,  curr_df$weight, na.rm = TRUE),
+    pov_sev_yn_pc  = weighted.mean(curr_df$pov_gap_yn_pc_sqrd,  curr_df$weight, na.rm = TRUE),
+    pov_sev_yg_pc  = weighted.mean(curr_df$pov_gap_yg_pc_sqrd,  curr_df$weight, na.rm = TRUE),
+    pov_sev_yd_pc  = weighted.mean(curr_df$pov_gap_yd_pc_sqrd,  curr_df$weight, na.rm = TRUE),
+    pov_sev_yc_pc  = weighted.mean(curr_df$pov_gap_yc_pc_sqrd,  curr_df$weight, na.rm = TRUE),
+    pov_sev_yf_pc  = weighted.mean(curr_df$pov_gap_yf_pc_sqrd,  curr_df$weight, na.rm = TRUE)
+  )
   
+  #browser()
   # Poverty measurements matrice
   summary_tab <- as.data.frame(cbind(t(poverty_headcount_ratio), t(nbr_poor), t(poverty_gap), t(poverty_sev), 
-                Income = c("Disposable Income","Market Income plus pensions",
-                           "Gross Income","Net Market Income","Consumable Income","Final Income"))) %>% 
+                                     Income = c("Market Income plus pensions", "Net Market Income",
+                                                "Gross Income","Disposable Income","Consumable Income","Final Income"))) %>% 
     pivot_longer(cols = starts_with("V"),
                  names_to = "Parameter",
                  values_to = "Pre-reform",
@@ -370,9 +400,8 @@ compute_poverty_indicators_bl <- function(curr_pline, area_level, before_data_wt
                               V3 = "Poverty gap",
                               V4 = "Poverty severity"),
            `Pre-reform` = round(as.numeric(`Pre-reform`),2),
-           Area = area_level,
-           `Poverty line` = curr_pline
-           ) 
+           Area = curr_area,
+           `Poverty line` = curr_pline) 
 
   return(summary_tab)
 }
@@ -382,132 +411,27 @@ lst_pline = c("pline_mod", "pline_mod_low", "pline_mod_middle")
 lst_area = c("Country", "Rural", "Urban")
 
 # Use map_dfr to iterate over Area and Pline to estimate different indicators
-Baseline_data_tab <- map_dfr(lst_pline, function(curr_pline) {    
+baseline_pov_estimates <- map_dfr(lst_pline, function(curr_pline) {    
   tempResults <- map_dfr(lst_area, function(curr_area) {
     bind_rows(
-      compute_poverty_indicators_bl(curr_pline, curr_area, before_data_wtht_na) 
+      get_pov_indicator_bl(curr_pline, curr_area, baseline_data) 
     )
   })
-}) %>% 
-  mutate(`Poverty line` = recode(`Poverty line`,
-                                 pline_mod = "National poverty line (454 MWK per day)",
-                                 pline_mod_low = "Lower income class poverty line (656.7 MKW per day)",
-                                 pline_mod_middle = "Middle income class poverty line (1114.8 MKW per day)")
-                                 )
+}) 
 
 
-# # Poverty Gap indicator as proportion of poverty line
-# before_data_wtht_na <- before_data_wtht_na %>%
-#   mutate(
-#     # Individual poverty gap (how much income falls short of poverty line)
-#     pov_gap_yd_pc = pmax(0, pline_mod - yd_pc) / pline_mod,
-#     pov_gap_yp_pc = pmax(0, pline_mod - yp_pc) / pline_mod,
-#     pov_gap_yg_pc = pmax(0, pline_mod - yg_pc) / pline_mod,
-#     pov_gap_yc_pc = pmax(0, pline_mod - yc_pc) / pline_mod,
-#     pov_gap_yn_pc = pmax(0, pline_mod - yn_pc) / pline_mod,
-#     pov_gap_yf_pc = pmax(0, pline_mod - yf_pc) / pline_mod,
-#     
-#   ) %>% 
-#   mutate(
-#     
-#     # Squared poverty gap (for FGT2 measure)
-#     pov_gap_yd_pc_sqrd = (pov_gap_yd_pc)^2,
-#     pov_gap_yp_pc_sqrd = (pov_gap_yp_pc)^2,
-#     pov_gap_yg_pc_sqrd = (pov_gap_yg_pc)^2,
-#     pov_gap_yn_pc_sqrd = (pov_gap_yn_pc)^2,
-#     pov_gap_yc_pc_sqrd = (pov_gap_yc_pc)^2,
-#     pov_gap_yf_pc_sqrd = (pov_gap_yf_pc)^2
-#   )
-# 
-# 
-# 
-# # Compute poverty headcount ratio
-# poverty_headcount_ratio <- before_data_wtht_na %>%
-#   summarise(
-#     pov_rate_yd_pc = sum(weight[yd_pc < pline_mod], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
-#     pov_rate_yp_pc  = sum(weight[yp_pc  < pline_mod], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
-#     pov_rate_yg_pc  = sum(weight[yg_pc  < pline_mod], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
-#     pov_rate_yn_pc  = sum(weight[yn_pc  < pline_mod], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
-#     pov_rate_yc_pc  = sum(weight[yc_pc  < pline_mod], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
-#     pov_rate_yf_pc  = sum(weight[yf_pc  < pline_mod], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE)
-#   )
-# 
-# # Compute number of poor 
-# nbr_poor <- before_data_wtht_na %>%
-#   summarise(
-#     nbr_poor_yd_pc  = sum(weight[yd_pc  < pline_mod], na.rm = TRUE),
-#     nbr_poor_yp_pc  = sum(weight[yp_pc  < pline_mod], na.rm = TRUE),
-#     nbr_poor_yg_pc  = sum(weight[yg_pc  < pline_mod], na.rm = TRUE),
-#     nbr_poor_yn_pc  = sum(weight[yn_pc  < pline_mod], na.rm = TRUE),
-#     nbr_poor_yc_pc  = sum(weight[yc_pc  < pline_mod], na.rm = TRUE),
-#     nbr_poor_yf_pc  = sum(weight[yf_pc  < pline_mod], na.rm = TRUE)
-#   )
-# 
-# # Poverty Gap
-# poverty_gap <- tibble(
-#   pov_gap_yd_pc  = weighted.mean(before_data_wtht_na$pov_gap_yd_pc,  before_data_wtht_na$weight, na.rm = TRUE)*100,
-#   pov_gap_yp_pc  = weighted.mean(before_data_wtht_na$pov_gap_yp_pc,  before_data_wtht_na$weight, na.rm = TRUE)*100,
-#   pov_gap_yg_pc  = weighted.mean(before_data_wtht_na$pov_gap_yg_pc,  before_data_wtht_na$weight, na.rm = TRUE)*100,
-#   pov_gap_yn_pc  = weighted.mean(before_data_wtht_na$pov_gap_yn_pc,  before_data_wtht_na$weight, na.rm = TRUE)*100,
-#   pov_gap_yc_pc  = weighted.mean(before_data_wtht_na$pov_gap_yc_pc,  before_data_wtht_na$weight, na.rm = TRUE)*100,
-#   pov_gap_yf_pc  = weighted.mean(before_data_wtht_na$pov_gap_yf_pc,  before_data_wtht_na$weight, na.rm = TRUE)*100
-# )
-# 
-# # Poverty severity index - squared poverty gap measure
-# poverty_sev <- tibble(
-#   pov_sev_yd_pc  = weighted.mean(before_data_wtht_na$pov_gap_yd_pc_sqrd,  before_data_wtht_na$weight, na.rm = TRUE),
-#   pov_sev_yp_pc  = weighted.mean(before_data_wtht_na$pov_gap_yp_pc_sqrd,  before_data_wtht_na$weight, na.rm = TRUE),
-#   pov_sev_yg_pc  = weighted.mean(before_data_wtht_na$pov_gap_yg_pc_sqrd,  before_data_wtht_na$weight, na.rm = TRUE),
-#   pov_sev_yn_pc  = weighted.mean(before_data_wtht_na$pov_gap_yn_pc_sqrd,  before_data_wtht_na$weight, na.rm = TRUE),
-#   pov_sev_yc_pc  = weighted.mean(before_data_wtht_na$pov_gap_yc_pc_sqrd,  before_data_wtht_na$weight, na.rm = TRUE),
-#   pov_sev_yf_pc  = weighted.mean(before_data_wtht_na$pov_gap_yf_pc_sqrd,  before_data_wtht_na$weight, na.rm = TRUE)
-# )
-# 
-# # Poverty measurements matrice
-# Baseline_data_tab <- as.data.frame(cbind(t(poverty_headcount_ratio), t(nbr_poor), t(poverty_gap), t(poverty_sev), 
-#                                          Income = c("Disposable Income","Market Income plus pensions",
-#                                                     "Gross Income","Net Market Income","Consumable Income","Final Income"))) %>% 
-#   pivot_longer(cols = starts_with("V"),
-#                names_to = "Parameter",
-#                values_to = "Pre-reform",
-#                values_drop_na = TRUE) %>% 
-#   mutate(Parameter = recode(Parameter,
-#                             V1 = "Rate of poverty",
-#                             V2 = "Number of poor",
-#                             V3 = "Poverty gap",
-#                             V4 = "Poverty severity"),
-#          `Pre-reform` = round(as.numeric(`Pre-reform`),2)
-#   )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-write_rds(Baseline_data_tab, paste0(here(),output_folder, "/Shiny Data/Baseline_data_tab.rds"))
 
 # Gini results
 # gini_results <- list(
-#   yp_pc  = wINEQ::Gini(before_data_wtht_na$yp_pc, W = before_data_wtht_na$weight, fast = TRUE, rounded.weights = TRUE),
-#   yg_pc  = wINEQ::Gini(before_data_wtht_na$yg_pc, W = before_data_wtht_na$weight, fast = TRUE, rounded.weights = TRUE),
-#   yn_pc  = wINEQ::Gini(before_data_wtht_na$yn_pc, W = before_data_wtht_na$weight, fast = TRUE, rounded.weights = TRUE),
-#   yd_pc  = wINEQ::Gini(before_data_wtht_na$yd_pc, W = before_data_wtht_na$weight, fast = TRUE, rounded.weights = TRUE),
-#   yc_pc  = wINEQ::Gini(before_data_wtht_na$yc_pc, W = before_data_wtht_na$weight, fast = TRUE, rounded.weights = TRUE),
-#   yf_pc  = wINEQ::Gini(before_data_wtht_na$yf_pc, W = before_data_wtht_na$weight, fast = TRUE, rounded.weights = TRUE)
+#   yp_pc  = wINEQ::Gini(baseline_data$yp_pc, W = baseline_data$weight, fast = TRUE, rounded.weights = TRUE),
+#   yg_pc  = wINEQ::Gini(baseline_data$yg_pc, W = baseline_data$weight, fast = TRUE, rounded.weights = TRUE),
+#   yn_pc  = wINEQ::Gini(baseline_data$yn_pc, W = baseline_data$weight, fast = TRUE, rounded.weights = TRUE),
+#   yd_pc  = wINEQ::Gini(baseline_data$yd_pc, W = baseline_data$weight, fast = TRUE, rounded.weights = TRUE),
+#   yc_pc  = wINEQ::Gini(baseline_data$yc_pc, W = baseline_data$weight, fast = TRUE, rounded.weights = TRUE),
+#   yf_pc  = wINEQ::Gini(baseline_data$yf_pc, W = baseline_data$weight, fast = TRUE, rounded.weights = TRUE)
 # )
 
-before_data_wtht_na <- before_data_wtht_na %>%
+baseline_data <- baseline_data %>%
   mutate(
     # Education
     educ_preschool_hh     = educ_preschool_hh     %>% structure(label = "Government spending on preschool education, at the household level"),
@@ -548,7 +472,7 @@ before_data_wtht_na <- before_data_wtht_na %>%
 
 
 # Compute deciles using weighted quantiles
-before_data_wtht_na <- before_data_wtht_na %>%
+baseline_data <- baseline_data %>%
   mutate(
     
     # Weighted decile using Hmisc::wtd.quantile (numeric decile labels 1 to 10)
@@ -564,59 +488,190 @@ before_data_wtht_na <- before_data_wtht_na %>%
   )
 
 # Saving 
-write_rds(before_data_wtht_na, paste0(here(),output_folder, "/Shiny Data/baseline_final_data.rds"))
-write_rds(Baseline_data_tab, paste0(here(),output_folder, "/Shiny Data/Baseline_data_tab.rds"))
+write_rds(baseline_data, paste0(here(),output_folder, "/Shiny Data/baseline_data.rds"))
+write_rds(baseline_pov_estimates, paste0(here(),output_folder, "/Shiny Data/baseline_pov_estimates.rds"))
 
-# # Variable to compute some stat
-# vars_sum <- c("yp_hh", "dtx_all_hh", "yn_hh", "dtr_all_hh", "dtr_nct_hh", "dtr_frmz_hh", "dtr_nfra_hh", "dtr_masaf_hh",
-#               "dtr_ffwk_hh", "dtr_ifwp_hh", "dtr_ses_hh", "dtr_tes_hh", "dtr_onc_hh", "dct_hh", "dct_gov_hh", "dct_ngo_hh", "dct_fips_hh",
-#               "yg_hh", "yd_hh", "sub_all_hh", "sub_electri_hh", "sub_fuel_hh", "itx_all_hh", "yc_hh",
-#               "educ_hh", "educ_preschool_hh", "educ_primary_hh", "educ_secondary_hh", "educ_postsecondary_hh",
-#               "educ_tertiary_hh", "educ_masterphd_hh", "health_hh",
-#               "health_gov_hiv_hh", "health_gov_ncd_hh", "health_gov_rep_hh", "health_gov_mal_hh", "health_gov_tb_hh",
-#               "health_gov_nut_hh", "health_gov_other_hh", "Users_fee_hh", "Education_fee_hh", "Health_fee_hh", "yf_hh")
-# 
-# vars_bin <- c("yp_hh", "dtx_all_hh", "yn_hh", "dtr_all_hh", "dtr_nct_hh", "dtr_frmz_hh", "dtr_nfra_hh", "dtr_masaf_hh",
-#               "dtr_ffwk_hh", "dtr_ifwp_hh", "dtr_ses_hh", "dtr_tes_hh", "dtr_onc_hh", "dct_hh", "dct_gov_hh", "dct_ngo_hh", "dct_fips_hh",
-#               "yg_hh", "yd_hh", "sub_all_hh", "sub_electri_hh", "sub_fuel_hh", "itx_all_hh", "yc_hh",
-#               "educ_hh", "health_hh", "Users_fee_hh", "Education_fee_hh", "Health_fee_hh", "yf_hh")
-# 
-# 
-# # Create binary indicators and Generate sum by decile (in millions)
-# before_data_wtht_na <- before_data_wtht_na %>%
-#   mutate(across(all_of(vars_bin), ~ as.integer(. > 0), .names = "i_{.col}")) %>% 
-#   mutate(across(all_of(vars_sum), ~ . / 1e6))
-# 
-# 
-# i_vars_bin <- paste0("i_", vars_bin)
-# 
-# # Sum by decile (weighted)
-# sum_by_decile <- before_data_wtht_na %>%
-#   filter(pid == 1) %>%
-#   group_by(decile) %>%
-#   summarise(across(all_of(vars_sum), ~ sum(. * weight, na.rm = TRUE), .names = "{.col}")) %>%
-#   arrange(decile)
-# 
-# # Export as plain CSV
-# write.csv(sum_by_decile, paste0(here(),output_folder, "/Shiny Data/sum_deciles_MWB_DM.csv"))
-# 
-# # Mean by decile (weighted)
-# mean_by_decile <- before_data_wtht_na %>%
-#   filter(pid == 1) %>%
-#   group_by(decile) %>%
-#   summarise(across(all_of(vars_sum), ~ weighted.mean(., weight, na.rm = TRUE), .names = "{.col}")) %>%
-#   arrange(decile)
-# 
-# write.csv(mean_by_decile,  paste0(here(),output_folder, "/Shiny Data/mean_deciles_MWB_DM.csv"))
-# 
-# 
-# # Count of households with positive value by decile
-# count_hh_by_decile <- before_data_wtht_na %>%
-#   filter(pid == 1) %>%
-#   group_by(decile) %>%
-#   summarise(across(all_of(i_vars_bin), ~ sum(. * weight, na.rm = TRUE), .names = "{.col}")) %>%
-#   arrange(decile)
-# 
-# write.csv(count_hh_by_decile, paste0(here(),output_folder, "/Shiny Data/count_hogares_MWB_DM.csv"))
-# 
-# 
+######################## Geospatial analysis #########################################
+
+get_geo_pov_indicator_bl <- function(curr_pline, curr_df) {
+  
+  # Poverty Gap indicator as proportion of poverty line
+  curr_df <- curr_df %>%
+    mutate(
+      # Individual poverty gap (how much income falls short of poverty line)
+      pov_gap_yd_pc = pmax(0, !!sym(curr_pline) - yd_pc) / !!sym(curr_pline),
+      pov_gap_yp_pc = pmax(0, !!sym(curr_pline) - yp_pc) / !!sym(curr_pline),
+      pov_gap_yg_pc = pmax(0, !!sym(curr_pline) - yg_pc) / !!sym(curr_pline),
+      pov_gap_yn_pc = pmax(0, !!sym(curr_pline) - yn_pc) / !!sym(curr_pline),
+      pov_gap_yc_pc = pmax(0, !!sym(curr_pline) - yc_pc) / !!sym(curr_pline),
+      pov_gap_yf_pc = pmax(0, !!sym(curr_pline) - yf_pc) / !!sym(curr_pline)
+      
+    ) %>% 
+    mutate(
+      
+      # Squared poverty gap (for FGT2 measure)
+      pov_gap_yd_pc_sqrd = (pov_gap_yd_pc)^2,
+      pov_gap_yp_pc_sqrd = (pov_gap_yp_pc)^2,
+      pov_gap_yg_pc_sqrd = (pov_gap_yg_pc)^2,
+      pov_gap_yn_pc_sqrd = (pov_gap_yn_pc)^2,
+      pov_gap_yc_pc_sqrd = (pov_gap_yc_pc)^2,
+      pov_gap_yf_pc_sqrd = (pov_gap_yf_pc)^2
+    )
+  
+  
+  
+  # Compute poverty headcount ratio
+  poverty_headcount_ratio <- curr_df %>%
+    dplyr::summarise(
+      pov_rate_yp_pc  = sum(weight[yp_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
+      pov_rate_yn_pc  = sum(weight[yn_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
+      pov_rate_yg_pc  = sum(weight[yg_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
+      pov_rate_yd_pc  = sum(weight[yd_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
+      pov_rate_yc_pc  = sum(weight[yc_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
+      pov_rate_yf_pc  = sum(weight[yf_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE)
+    )
+  
+  # Compute number of poor 
+  nbr_poor <- curr_df %>%
+    dplyr::summarise(
+      nbr_poor_yp_pc  = sum(weight[yp_pc  < !!sym(curr_pline)], na.rm = TRUE),
+      nbr_poor_yn_pc  = sum(weight[yn_pc  < !!sym(curr_pline)], na.rm = TRUE),
+      nbr_poor_yg_pc  = sum(weight[yg_pc  < !!sym(curr_pline)], na.rm = TRUE),
+      nbr_poor_yd_pc  = sum(weight[yd_pc  < !!sym(curr_pline)], na.rm = TRUE),
+      nbr_poor_yc_pc  = sum(weight[yc_pc  < !!sym(curr_pline)], na.rm = TRUE),
+      nbr_poor_yf_pc  = sum(weight[yf_pc  < !!sym(curr_pline)], na.rm = TRUE)
+    )
+  
+  # Poverty Gap
+  poverty_gap <- tibble(
+    pov_gap_yp_pc  = weighted.mean(curr_df$pov_gap_yp_pc,  curr_df$weight, na.rm = TRUE)*100,
+    pov_gap_yn_pc  = weighted.mean(curr_df$pov_gap_yn_pc,  curr_df$weight, na.rm = TRUE)*100,
+    pov_gap_yg_pc  = weighted.mean(curr_df$pov_gap_yg_pc,  curr_df$weight, na.rm = TRUE)*100,
+    pov_gap_yd_pc  = weighted.mean(curr_df$pov_gap_yd_pc,  curr_df$weight, na.rm = TRUE)*100,
+    pov_gap_yc_pc  = weighted.mean(curr_df$pov_gap_yc_pc,  curr_df$weight, na.rm = TRUE)*100,
+    pov_gap_yf_pc  = weighted.mean(curr_df$pov_gap_yf_pc,  curr_df$weight, na.rm = TRUE)*100
+  )
+  
+  # Poverty severity index - squared poverty gap measure
+  poverty_sev <- tibble(
+    pov_sev_yp_pc  = weighted.mean(curr_df$pov_gap_yp_pc_sqrd,  curr_df$weight, na.rm = TRUE),
+    pov_sev_yn_pc  = weighted.mean(curr_df$pov_gap_yn_pc_sqrd,  curr_df$weight, na.rm = TRUE),
+    pov_sev_yg_pc  = weighted.mean(curr_df$pov_gap_yg_pc_sqrd,  curr_df$weight, na.rm = TRUE),
+    pov_sev_yd_pc  = weighted.mean(curr_df$pov_gap_yd_pc_sqrd,  curr_df$weight, na.rm = TRUE),
+    pov_sev_yc_pc  = weighted.mean(curr_df$pov_gap_yc_pc_sqrd,  curr_df$weight, na.rm = TRUE),
+    pov_sev_yf_pc  = weighted.mean(curr_df$pov_gap_yf_pc_sqrd,  curr_df$weight, na.rm = TRUE)
+  )
+  
+  
+  # Poverty measurements matrice
+  summary_tab <- as.data.frame(cbind(t(poverty_headcount_ratio), t(nbr_poor), t(poverty_gap), t(poverty_sev), 
+                                     Income = c("Market Income plus pensions", "Net Market Income",
+                                                "Gross Income","Disposable Income","Consumable Income","Final Income"))) %>% 
+    pivot_longer(cols = starts_with("V"),
+                 names_to = "Parameter",
+                 values_to = "Pre-reform",
+                 values_drop_na = TRUE) %>% 
+    mutate(Parameter = recode(Parameter,
+                              V1 = "Rate of poverty",
+                              V2 = "Number of poor",
+                              V3 = "Poverty gap",
+                              V4 = "Poverty severity"),
+           `Pre-reform` = round(as.numeric(`Pre-reform`),2),
+           `Poverty line` = curr_pline) 
+  
+  return(summary_tab)
+}
+
+# Analysis per region
+geo_pov_per_region <- baseline_data %>% 
+  group_by(region) %>% 
+  group_split() %>%
+  map_dfr(., function(splitted_df){
+    
+    curr_region = first(splitted_df$region)
+    
+    pov_per_region <-  map_dfr(lst_pline, function(curr_pline) {    
+        bind_rows(
+          get_geo_pov_indicator_bl(curr_pline, splitted_df) %>%
+            mutate(Code_area = as.character(curr_region), Area = "region") 
+        )
+    }) 
+    
+    pov_per_region
+  })
+
+
+# Analysis per district
+geo_pov_per_district <- baseline_data %>% 
+  group_by(district) %>% 
+  group_split() %>%
+  map_dfr(., function(splitted_df){
+    
+    curr_district= first(splitted_df$district)
+    
+    pov_per_district <-  map_dfr(lst_pline, function(curr_pline) {    
+      bind_rows(
+        get_geo_pov_indicator_bl(curr_pline, splitted_df) %>%
+          mutate(Code_area =  as.character(curr_district), Area = "district") 
+      )
+    }) 
+    
+    pov_per_district
+  })
+
+# Merging to get admin_name
+baseline_geo_pov_estimates <- plyr::rbind.fill(geo_pov_per_region,geo_pov_per_district)
+
+baseline_geo_pov_estimates <- full_join(baseline_geo_pov_estimates, 
+                                        correspondance_table %>% 
+                                          select(Admin_Code, Admin_Label) %>% 
+                                          rename(admin_code = Admin_Code, 
+                                                 admin_name = Admin_Label) %>% 
+                                          mutate(admin_code = as.character(admin_code),
+                                                 admin_name = admin_name),   
+                                          by=c("Code_area"="admin_code")) %>% 
+  left_join(correspondance_table %>% 
+              select(Region_Code, Region) %>% 
+              rename(admin_code = Region_Code, 
+                     admin_name_region = Region) %>% 
+              mutate(admin_code = as.character(admin_code)) %>% 
+              distinct(.keep_all = TRUE),   
+            by=c("Code_area"="admin_code")) %>% 
+  mutate(admin_name = ifelse(is.na(admin_name), admin_name_region, admin_name)) %>% 
+  select(Income,Parameter,`Pre-reform`,`Poverty line`,Code_area,Area,admin_name,admin_name)
+  
+
+# Saving 
+write_rds(baseline_geo_pov_estimates, paste0(here(),output_folder, "/Shiny Data/baseline_geo_pov_estimates.rds"))
+
+
+
+# Merge geospatial dataset with insurgency information
+mlw_bound <- full_join(mlw_bound, correspondance_table,   by=c("GID_1"="Shapefile_ID")) 
+
+
+# Merge geometry and appropriate shp
+mlw_bound_region <- mlw_bound %>% 
+  group_by(Region_Code) %>% 
+  mutate(geometry = sf::st_union(geometry)) %>%
+  ungroup() %>% 
+  distinct(Region_Code, Region, .keep_all = T) %>%
+  dplyr::select(Region_Code, Region, geometry) %>% 
+  rename(admin_code = Region_Code, 
+         admin_name = Region)%>% 
+  mutate(admin_code = as.character(admin_code),
+         admin_name = as.character(admin_name)
+  )
+
+mlw_bound_district <- mlw_bound %>% 
+  select(Admin_Code, Admin_Label, geometry) %>% 
+  rename(admin_code = Admin_Code, 
+         admin_name = Admin_Label) %>% 
+  mutate(admin_code = as.character(admin_code),
+         admin_name = as.character(admin_name)
+         )
+
+
+# Saving
+st_write(mlw_bound_region, paste0(here(),output_folder, "/Shapefile/region_geo.shp"), quiet=TRUE, delete_layer=TRUE)
+st_write(mlw_bound_district, paste0(here(),output_folder, "/Shapefile/district_geo.shp"), quiet=TRUE, delete_layer=TRUE)
