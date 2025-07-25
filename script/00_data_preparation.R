@@ -303,7 +303,7 @@ baseline_data <- baseline_data %>%
     yf_pc = (yf_hh / hhsize) %>% structure(label="Final Income (per capita)")
   ) %>% 
   mutate(pline_mod_low = 656.7*365,
-         pline_mod_middle = 1114.8*365)
+         pline_mod_middle = 1115*365)
 # Source: https://databankfiles.worldbank.org/public/ddpext_download/poverty/987B9C90-CB9F-4D93-AE8C-750588BF00QA/current/Global_POVEQ_MWI.pdf
 # Based on available historical data, the average exchange rate for the Malawian Kwacha to the US Dollar in 2019 was approximately 730 MWK to 1 USD.
 write_rds(baseline_data, paste0(here(),output_folder, "/Shiny Data/baseline_data.rds"))

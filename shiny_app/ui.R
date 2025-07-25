@@ -76,83 +76,268 @@ page_navbar(
       nav_panel(
         title = "Direct tax",
         value = "direct_tax",
-        card(
-          full_screen = TRUE,
-          fill = TRUE,
-          card_header(
-            bs_icon("info-circle-fill", size = "1.2em"),
-            "Direct Tax Input Form",
-            class = "info-box-header"
-          ),
-          p(
-            "Explanation..... ",
-            tags$a(
-              "More information on the methodology",
-              href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
-              target = "_blank"
-            ), "."
-          )
-        ),
-        h3("Income tax"),
-        # Table-style input form
-        tags$table(
-          class = "table table-borderless",
-          tags$thead(
-            tags$tr(
-              tags$th("Bracket"),
-              tags$th("Upper income threshold (in million kwacha) per year"),
-              tags$th("Baseline tax rate in %"),
-              tags$th("Tax rate in %")
-            )
-          ),
-          tags$tbody(
-            tags$tr(
-              tags$td("1"),
-              tags$td("Less than 1.8"),
-              tags$td("0"),
-              tags$td(
-                numericInput(
-                  "tax_rate_lowest", NULL, value = 0, min = 0, max = 50, step = .01, width = "100px"
-                )
-              )
-            ),
-            tags$tr(
-              tags$td("2"),
-              tags$td("More than 1.8 and less than 6"),
-              tags$td("25"),
-              tags$td(
-                numericInput(
-                  "tax_rate_second", NULL, value = 25, min = 0, max = 50, step = .01, width = "100px"
-                )
-              )
-            ),
-            tags$tr(
-              tags$td("3"),
-              tags$td("More than 6 and less than 30.6"),
-              tags$td("30"),
-              tags$td(
-                numericInput(
-                  "tax_rate_middle", NULL, value = 30, min = 0, max = 50, step = .01, width = "100px"
-                )
-              )
-            ),
-            tags$tr(
-              tags$td("4"),
-              tags$td("More than 30.6"),
-              tags$td("35"),
-              tags$td(
-                numericInput(
-                  "tax_rate_top", NULL, value = 35, min = 0, max = 50, step = .01, width = "100px"
-                )
-              )
-            )
-          )
+        # card(
+        #   full_screen = FALSE,
+        #   fill = TRUE,
+        #   card_header(
+        #     bs_icon("info-circle-fill", size = "1.2em"),
+        #     "Direct Tax Input Form",
+        #     class = "info-box-header"
+        #   ),
+        #   p(
+        #     "This tab presents the structure of the direct income tax system used in the microsimulation model.",
+        #     tags$a(
+        #       " More information on the methodology is available here",
+        #       href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
+        #       target = "_blank"
+        #     ), "."
+        #   )
+        # 
+        # ),
+        
+        navset_pill_list(
+          id = "sub_tabs_input_paye",
+          nav_panel(title = "PAYE Income Tax", 
+                    # Table-style input form
+                    card(
+                      full_screen = FALSE,
+                      fill = TRUE,
+                    card_header(
+                      bs_icon("person-badge", size = "3em"),
+                      span("PAYE Income Tax", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
+                      class = "info-box-header"
+                    ),
+                    p(
+                      "This tab allows you to adjust the Pay As You Earn (PAYE) tax rates applied to different income level. ",
+                      "The Pre-reform rates reflect current tax rates.",
+                      tags$a(" Learn more in the CEQ methodology guide.",
+                             href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
+                             target = "_blank"),
+                      "."
+                    ),
+                    tags$table(
+                      class = "table table-borderless",
+                      tags$thead(
+                        tags$tr(
+                          tags$th("Bracket"),
+                          tags$th("Upper income threshold (in million kwacha) per year"),
+                          tags$th("Pre-reform tax rate (%)"),
+                          tags$th("Current policy tax rate (%)")
+                        )
+                      ),
+                      tags$tbody(
+                        tags$tr(
+                          tags$td("1"),
+                          tags$td("Less than 1.8"),
+                          tags$td("0"),
+                          tags$td(
+                            numericInput(
+                              "tax_rate_lowest", NULL, value = 0, min = 0, max = 50, step = .01, width = "100px"
+                            )
+                          )
+                        ),
+                        tags$tr(
+                          tags$td("2"),
+                          tags$td("More than 1.8 and less than 6"),
+                          tags$td("25"),
+                          tags$td(
+                            numericInput(
+                              "tax_rate_second", NULL, value = 25, min = 0, max = 50, step = .01, width = "100px"
+                            )
+                          )
+                        ),
+                        tags$tr(
+                          tags$td("3"),
+                          tags$td("More than 6 and less than 30.6"),
+                          tags$td("30"),
+                          tags$td(
+                            numericInput(
+                              "tax_rate_middle", NULL, value = 30, min = 0, max = 50, step = .01, width = "100px"
+                            )
+                          )
+                        ),
+                        tags$tr(
+                          tags$td("4"),
+                          tags$td("More than 30.6"),
+                          tags$td("35"),
+                          tags$td(
+                            numericInput(
+                              "tax_rate_top", NULL, value = 35, min = 0, max = 50, step = .01, width = "100px"
+                            )
+                          )
+                        )
+                      )
+                    )
+                    )
+                    ),
+          nav_panel(title = "Corporate Income Tax",
+                    
+                    card(
+                      full_screen = FALSE,
+                      fill = TRUE,
+                      card_header(
+                        bs_icon("building", size = "3em"),
+                        span("Corporate Income Tax", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
+                        class = "info-box-header"
+                      ),
+                      p(
+                        "This tab allows you to adjust the corporate income tax rates applied to different industries. ",
+                        "The baseline rates reflect current policy classifications based on priority sectors, incorporation status, and business type.",
+                        tags$a(" Learn more in the CEQ methodology guide.",
+                               href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
+                               target = "_blank"),
+                        "."
+                      ),
+                      
+                      tags$table(
+                        class = "table table-borderless",
+                        tags$thead(
+                          tags$tr(
+                            tags$th("Sector Code"),
+                            tags$th("Sector Name"),
+                            tags$th("Pre-reform tax rate (%)"),
+                            tags$th("Current policy tax rate (%)")
+                          )
+                        ),
+                        tags$tbody(
+                          tagList(
+                            lapply(0:18, function(code) {
+                              sector_names <- c(
+                                "Administrative and Support Service Activities",
+                                "Agriculture",
+                                "Arts, Entertainment and Recreation",
+                                "Communication",
+                                "Construction",
+                                "Education",
+                                "Electricity, Gas and Water",
+                                "Financial actitivies",
+                                "Hospitality",
+                                "Human Health and Social Work Activities",
+                                "Manufacture",
+                                "Mining",
+                                "Other Service Activities",
+                                "Professional, scientific and Technical activities",
+                                "Public adminitration and Defense;Compulsory Social Security",
+                                "Real Estate Activities",
+                                "Retail",
+                                "Transport"
+                              )
+                              
+                              baseline_rates <- c(
+                                30,  # Administrative and Support Service Activities
+                                0,   # Agriculture
+                                30,  # Arts, Entertainment and Recreation
+                                15,  # Communication
+                                15,  # Construction
+                                30,  # Education
+                                0,   # Electricity, Gas and Water
+                                30,  # Financial actitivies
+                                15,  # Hospitality
+                                30,  # Human Health and Social Work Activities
+                                15,  # Manufacture
+                                15,  # Mining
+                                15,  # Other Service Activities
+                                30,  # Professional, scientific and Technical activities
+                                30,  # Public adminitration and Defense;Compulsory Social Security
+                                30,  # Real Estate Activities
+                                15,  # Retail
+                                15   # Transport
+                              )
+                              
+                              
+                              tags$tr(
+                                tags$td(code),
+                                tags$td(sector_names[code + 1]),
+                                tags$td(baseline_rates[code + 1]),
+                                tags$td(
+                                  numericInput(
+                                    inputId = paste0("corp_tax_", code),
+                                    label = NULL,
+                                    value = baseline_rates[code + 1],
+                                    min = 0,
+                                    max = 100,
+                                    step = 0.01,
+                                    width = "100px"
+                                  )
+                                )
+                              )
+                            })
+                          )
+                        )
+                      )
+                    )
+                  ),
+          nav_panel(title = "Help",
+                    value = "Help",help_direct_tax_tab),
         )
+ 
       ),
       
       # --- Other placeholder tabs ---
-      nav_panel(title = "Indirect taxes", value = "indirect_taxes", "Indirect taxes"),
-      nav_panel(title = "Direct transferts", value = "direct_transferts", "Direct transferts"),
+      nav_panel(title = "Indirect taxes", value = "indirect_taxes", 
+                card(
+                  full_screen = FALSE,
+                  fill = TRUE,
+                  card_header(
+                    bs_icon("info-circle-fill", size = "1.2em"),
+                    "Indirect Tax Input Form",
+                    class = "info-box-header"
+                  ),
+                  p(
+                    "This tab presents the structure of the indirect tax system used in the microsimulation model.",
+                    tags$a(
+                      " More information on the methodology is available here",
+                      href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
+                      target = "_blank"
+                    ), "."
+                  )
+
+                ),
+                navset_pill_list(
+                  id = "sub_tabs_input_indirect",
+                  nav_panel(title = "VAT tax",  value = "vat_tax", 'VAT Tax'
+                            # Table-style input form
+                            
+                          
+                            ), 
+                  nav_panel(title = "Excise", value = "excise", "Excise"),
+                  nav_panel(title = "Help",
+                            value = "Help",help_indirect_tax_tab)
+                )
+        ),
+      nav_panel(title = "Direct transferts", value = "direct_transferts", 
+                
+                card(
+                  full_screen = FALSE,
+                  fill = TRUE,
+                  card_header(
+                    bs_icon("info-circle-fill", size = "1.2em"),
+                    "Direct transferts Input Form",
+                    class = "info-box-header"
+                  ),
+                  p(
+                    "This tab presents the structure of the direct transfert system used in the microsimulation model.",
+                    tags$a(
+                      " More information on the methodology is available here",
+                      href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
+                      target = "_blank"
+                    ), "."
+                  )
+                  
+                ),
+                navset_pill_list(
+                  id = "sub_tabs_direct_cash",
+                  nav_panel(title = "Direct cash transfers",  value = "direct_cash_transfers", 'Government direct cash transfer and Farm Input Subsidy Programme'
+                            # Table-style input form
+                            
+                            
+                  ), 
+                  nav_panel(title = "Near-cash transfers ", value = "near_cash_transfers", "Free Maize"),
+                  nav_panel(title = "Help",
+                            value = "Help",help_direct_transf_tab)
+                )
+                
+                ),
       nav_panel(title = "Subsidies", value = "subsidies", "Subsidies"),
       nav_panel(title = "Benefits in-kind", value = "benefits_in_kind", "Benefits in-kind"),
       nav_panel(title = "Poverty line", value = "poverty_line", "Poverty line"),
@@ -165,7 +350,6 @@ page_navbar(
           loadingButton("simulate_button", label = "Simulate")
         )
       )
-      
     ) # end navset_pill_list
   ), # end nav_panel "Policy choice", # close entire profiles tab
 
@@ -174,22 +358,20 @@ page_navbar(
   ############################################.
   nav_panel(title = "Results", value = "results", style = "margin: 1; padding:1;", # remove margin so no white space at top of landing page
             
-    navset_pill(id = "sub_tabs_results",  
+            navset_pill_list(id = "sub_tabs_results",  
                  # nolint
                 # --- Direct tax tab ---
-                nav_panel(title = "Poverty", value = "poverty", pov_mod_ui("sim_poverty")),
+                nav_panel(title = "Poverty Indicators by Income Concept", value = "poverty", pov_mod_ui("sim_poverty")),
                 # --- Geospatial analysis tab ---geo_pov_mod_ui("sim_geo_poverty")
-                nav_panel(title = "Geospatial", value = "geospatial", geo_pov_mod_ui("sim_geo_poverty")),
+                nav_panel(title = "Geospatial Poverty Analysis", value = "geospatial", geo_pov_mod_ui("sim_geo_poverty")),
                 # --- Other placeholder tabs ---
                 nav_panel(title = "Income distribution", value = "income_distribution", "Income distribution"),
                 nav_panel(title = "Inequality", value = "Inequality", "Inequality"),
                 nav_panel(title = "Net cash position", value = "net_cash_position", "Net cash position"),
                 nav_panel(title = "Benefits in-kind", value = "benefits_in_kind", "Benefits in-kind"),
-                nav_panel(title = "Poverty line", value = "poverty_line", "Poverty line"),
-                nav_spacer()
-                )
+                nav_panel(title = "Poverty line", value = "poverty_line", "Poverty line")
                 
-         # end navset_pill_list
+         ) # end navset_pill_list
   ), # end nav_panel "Results choice"
   
   
@@ -197,8 +379,26 @@ page_navbar(
   ########################################.
   # Link to github repo  -------
   ########################################.
-  nav_item(tags$a(icon("github"), "SourceCode", href = "https://github.com/KassoumHabibou/Malawi-CEQ-Assessment-app", target = "_blank")),
-  
+  nav_item(
+    div(
+      style = "display: flex; align-items: center; gap: 12px; padding-right: 15px;",
+      
+      # Malawi flag
+      tags$img(
+        src = "malawi_flag.png",
+        height = "30px",
+        alt = "Malawi Flag",
+        style = "border-radius: 4px;"
+      ),
+      
+      # World Bank logo
+      tags$img(
+        src = "world_bank_logo.png",
+        height = "30px",
+        alt = "World Bank Logo"
+      )
+    )
+  ),
   ########################################.
   # Menu with additional tabs  -------
   ########################################.

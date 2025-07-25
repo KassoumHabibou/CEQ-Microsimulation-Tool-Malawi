@@ -22,13 +22,14 @@ geo_pov_mod_ui <- function(id) {
       full_screen = FALSE,
       height = "90%",
       # sidebar for filters ------------------
-      sidebar = sidebar(width = 400,
+      sidebar = sidebar(width = 500,
                         open = list(mobile = "always-above"), # make contents of side collapse on mobiles above main content
                         
                         accordion(
-                          open = c("geo_pov_line_filter_panel", "geo_pov_specification_filter_panel"), # guided tour panel closed by default
+                          open = c("geo_pov_line_filter_panel"), # guided tour panel closed by default
                           multiple = TRUE, # allow multiple panels to be open at once
                           
+                          tags$h2(textOutput(outputId = ns("selected_parameter_label")), style = "color: #2c3e50; font-weight: bold;"),
                           # accordion panel with indicator filter and definitions button
                           accordion_panel(
                             value = "geo_pov_line_filter_panel",
@@ -37,34 +38,20 @@ geo_pov_mod_ui <- function(id) {
                                 #indicator filter (note this is a module)
                                 selectizeInput(ns("geo_pov_line"), 
                                                label = "Poverty line",
-                                               choices = c( "National poverty line (454 MWK per day)" =  "National poverty line (454 MWK per day)",
+                                               choices = c( "National poverty line (454 MWK per day 2019/2020)" =  "National poverty line (454 MWK per day)",
                                                             "Poverty line for lower income countries (2.15 USD or 656.7 MKW per day PPP)" = "Lower income class poverty line (656.7 MKW per day)",
-                                                            "Poverty line for lower middle income countries (3.65 USD or 1114.8 MKW per day PPP)" = "Middle income class poverty line (1114.8 MKW per day)"),
+                                                            "Poverty line for lower middle income countries (3.65 USD or 1115 MKW per day PPP)" = "Middle income class poverty line (1115 MKW per day)"),
                                                selected = "National poverty line (454 MWK per day)"),
                                 
-                                radioButtons(inputId = ns("geo_income"), label = "Income concept", choices = pov_geo_income_list)
-                                
-                            )),
-                          
-                          # accordion panel with geography filters
-                          
-                          accordion_panel(
-                            value = "geo_pov_specification_filter_panel",
-                            "Specify",
-                            
-                            div(id = ns("geo_pov_specification_wrapper"), #wrapping for tour guide
+                                radioButtons(inputId = ns("geo_income"), label = "Income concept", choices = pov_geo_income_list),
                                 
                                 # all other geography filters
                                 # note these filters are enabled/disabled in the server function based on selected indicator
                                   radioButtons(inputId = ns("geo_pov_parameter_filter"), label = "Parameter to show:", choices = pov_parameter_list),
                                   radioButtons(inputId = ns("geo_pov_areas_filter"), label = "Areas:", choices = pov_geo_area_list)
                                 
-                            ))
+                            )
                         ) # close all accordion
-                        # indicator filter (note this is a module)
-
-                        
-              
                        
       ), # close sidebar
       
@@ -90,7 +77,6 @@ geo_pov_mod_ui <- function(id) {
                     value = ns("geo_pov_map_wrapper"),
                     uiOutput(ns("geo_pov_maps_caveats")), # caveats,
                     card(
-                      full_screen = FALSE,
                     leafletOutput(ns("geo_pov_map")) %>%  # map
                             withSpinner() %>%
                             bslib::as_fill_carrier())
@@ -102,7 +88,11 @@ geo_pov_mod_ui <- function(id) {
                     reactableOutput(ns("geo_pov_table")) # table
           ),
           
-          nav_spacer(),
+          # Interpretation tab 
+          nav_panel(
+            title = "Help",
+            uiOutput(ns("help_geospatial_pov_tab"))
+          ),
 
           footer = card_footer(class = "d-flex justify-content-left",
                                div(id = ns("geo_pov_download_chart"), download_chart_mod_ui(ns("download_geo_pov_chart"))),
@@ -121,7 +111,7 @@ geo_pov_mod_ui <- function(id) {
         #     ))
         # 
       ) # close layout column wrap
-      
+      )
     ) # close layout sidebar
   ) # close taglist
 } # close ui function 
@@ -218,14 +208,26 @@ geo_pov_mod_server <- function(id, simulated_geo_data, root_session) {
     output$geo_pov_title <- renderUI({
       req(geo_data())
       
+      # Get the selected parameter for better labeling
+      selected_parameter <- first(geo_data()$Parameter)
+      
+      # Create a clearer title based on the parameter
+      parameter_title <- case_when(
+        selected_parameter == "Number of poor" ~ "Number of Poor People",
+        selected_parameter == "Rate of poverty" ~ "Poverty Rate",
+        selected_parameter == "Poverty gap" ~ "Poverty Gap",
+        selected_parameter == "Poverty severity" ~ "Poverty Severity",
+        TRUE ~ selected_parameter
+      )
+      
       # prepare description of what map/chart show depending on
       # whether comparator included (and if so which comparator)
-      # display 3 x titles
+      # display titles with improved clarity
       div(
-        tags$h5(paste0("Parameter : ", first(geo_data()$Parameter))), # selected Parameter
-        tags$h6(paste0("Income : ", first(geo_data()$Income))), # selected 
-        tags$h6(paste0("Area : ", first(geo_data()$Area))), # selected 
-        tags$h6(paste0("Poverty line : ", first(geo_data()$`Poverty line`))) # selected 
+        tags$h5(paste0("Poverty Indicator: ", parameter_title)), # selected Parameter with clearer label
+        tags$h6(paste0("Income: ", first(geo_data()$Income))), # selected 
+        tags$h6(paste0("Area: ", first(geo_data()$Area))), # selected 
+        tags$h6(paste0("Poverty line: ", first(geo_data()$`Poverty line`))) # selected 
       )
       
     })
@@ -234,14 +236,26 @@ geo_pov_mod_server <- function(id, simulated_geo_data, root_session) {
     output$geo_pov_title_chart <- renderUI({
       req(geo_data())
       
+      # Get the selected parameter for better labeling
+      selected_parameter <- first(geo_data()$Parameter)
+      
+      # Create a clearer title based on the parameter
+      parameter_title <- case_when(
+        selected_parameter == "Number of poor" ~ "Number of Poor People",
+        selected_parameter == "Rate of poverty" ~ "Poverty Rate",
+        selected_parameter == "Poverty gap" ~ "Poverty Gap",
+        selected_parameter == "Poverty severity" ~ "Poverty Severity",
+        TRUE ~ selected_parameter
+      )
+      
       # prepare description of what map/chart show depending on
       # whether comparator included (and if so which comparator)
-      # display 3 x titles
+      # display titles with improved clarity
       div(
-        tags$h5(paste0("Parameter : ", first(geo_data()$Parameter)), class = "chart-header"), # selected Parameter
-        tags$h6(paste0("Income : ", first(geo_data()$Income))), # selected 
-        tags$h6(paste0("Area : ", first(geo_data()$Area))), # selected 
-        tags$h6(paste0("Poverty line : ", first(geo_data()$`Poverty line`))) # selected 
+        tags$h5(paste0("Poverty Indicator: ", parameter_title), class = "chart-header"), # selected Parameter with clearer label
+        tags$h6(paste0("Income: ", first(geo_data()$Income))), # selected 
+        tags$h6(paste0("Area: ", first(geo_data()$Area))), # selected 
+        tags$h6(paste0("Poverty line: ", first(geo_data()$`Poverty line`))) # selected 
       )
       
     })
@@ -414,6 +428,11 @@ geo_pov_mod_server <- function(id, simulated_geo_data, root_session) {
     download_data_btns_server(id = "download_geo_pov_data",
                               data = geo_data(),
                               file_name = "Geo_poverty_data_extract") # rename column
+    
+    # Render help content
+    output$help_geospatial_pov_tab <- renderUI({
+      help_geospatial_pov_tab
+    })
     
     
   }) # close moduleServer

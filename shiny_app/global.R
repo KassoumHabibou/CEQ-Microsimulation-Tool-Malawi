@@ -49,6 +49,9 @@ script_path <- paste0(data_folder, "/Script")
 list.files(paste0(here(),"/script/modules/results visualization"), full.names = TRUE, recursive = TRUE) %>% 
   map(~ source(.))
 
+list.files(paste0(here(),"/script/modules/narrative"), full.names = TRUE, recursive = TRUE) %>% 
+  map(~ source(.))
+
 list.files(paste0(here(),"/script/modules/buttons"), full.names = TRUE, recursive = TRUE) %>% 
   map(~ source(.))
 
@@ -101,6 +104,7 @@ phs_theme <- bs_theme(
       ".info-box-header { background-color: $phs-teal; color: #FFF;}", # info box header lighter phs purple colour with white text
       ".methodology-table td{ border:thin solid black; padding:3px;}", # for indicator def tab - make nested table cells have black border
       ".rt-tr-details {padding: 0px; box-shadow: inset 0 1px 3px #dbdbdb; background: #FDFDFC;}", # for indicator definitions tab - make expandable panel grey
+      ".chart-header { font-weight: 700; font-size: 1.2rem;}", # make chart headers bold
       ".chart-controls-icon {background-color:$phs-blue; color:white; border-radius:5em; padding:5px;}" # styling of the chart controls icon
     )
   )

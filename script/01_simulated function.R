@@ -66,7 +66,7 @@ simulate_tax_policy <- function(tax_rate_lowest,tax_rate_second,tax_rate_middle,
       yf_pc = (yf_hh / hhsize) %>% structure(label = "Final Income (per capita)")
     ) %>% 
     mutate(pline_mod_low = 656.7*365,
-           pline_mod_middle = 1114.8*365)
+           pline_mod_middle = 1115*365)
   
   lst_pline = c("pline_mod", "pline_mod_low", "pline_mod_middle")
   lst_area = c("Country", "Rural", "Urban")
@@ -92,7 +92,7 @@ simulate_tax_policy <- function(tax_rate_lowest,tax_rate_second,tax_rate_middle,
     mutate(`Poverty line` = recode(`Poverty line`,
                                    pline_mod = "National poverty line (454 MWK per day)",
                                    pline_mod_low = "Lower income class poverty line (656.7 MKW per day)",
-                                   pline_mod_middle = "Middle income class poverty line (1114.8 MKW per day)")
+                                   pline_mod_middle = "Middle income class poverty line (1115 MKW per day)")
     )
   
   
@@ -266,7 +266,7 @@ simulate_geo_tax_policy <- function(tax_rate_lowest,tax_rate_second,tax_rate_mid
       yf_pc = (yf_hh / hhsize) %>% structure(label = "Final Income (per capita)")
     ) %>% 
     mutate(pline_mod_low = 656.7*365,
-           pline_mod_middle = 1114.8*365)
+           pline_mod_middle = 1115*365)
   
   lst_pline = c("pline_mod", "pline_mod_low", "pline_mod_middle")
   
@@ -316,7 +316,7 @@ simulate_geo_tax_policy <- function(tax_rate_lowest,tax_rate_second,tax_rate_mid
     mutate(`Poverty line` = recode(`Poverty line`,
                                    pline_mod = "National poverty line (454 MWK per day)",
                                    pline_mod_low = "Lower income class poverty line (656.7 MKW per day)",
-                                   pline_mod_middle = "Middle income class poverty line (1114.8 MKW per day)")
+                                   pline_mod_middle = "Middle income class poverty line (1115 MKW per day)")
     )
   
   
