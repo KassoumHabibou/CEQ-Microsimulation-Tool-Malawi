@@ -7,8 +7,8 @@
 
 ######################## Importing library and external files ##################
 ### List of required packages
-required_packages <- c("tidyverse", "dplyr","haven","here","DescTools","labelled",
-                       "survey","wINEQ","Hmisc","labelled")
+required_packages <- c("tidyverse", "dplyr","haven","here","DescTools","labelled","readxl",
+                       "survey","wINEQ","Hmisc","labelled","ineq","sf","DescTools","Hmisc")
 
 ### Check if packages are installed
 missing_packages <- setdiff(required_packages, installed.packages()[,"Package"])
@@ -139,10 +139,23 @@ baseline_data <- HH_MOD_A %>%
 
 #baseline_data <- readRDS("~/Dropbox/PhD thesis/Internship World Bank/CEQ - Dashboard/CEQ - assessement tool/output/Shiny Data/baseline_data.rds")
 source(paste0(here(),"/script/intermediate/1.PID_PAYE_FS.R"))
-
+source(paste0(here(),"/script/intermediate/2.Indirect taxes and subsidies.R"))
 ######################## Data wrangling ###############################
 
-baseline_data <- curr_df %>% select(hhid, pid, i22_return_a) %>% right_join(baseline_data, by=c("hhid"="hhid", "pid"="pid"))
+baseline_data <- curr_df_0 %>% 
+  select(
+    # Direct tax
+    ## Income tax
+    hhid, pid, i22_return_a,
+    
+    ## Corporate tax
+    # dtx_payt_hh, i_dtx_payt_hh,
+    
+    # Quartile
+    decile, quartile
+    ) %>% 
+  
+  right_join(baseline_data, by=c("hhid"="hhid", "pid"="pid"))
 
 
 # 
@@ -246,6 +259,7 @@ baseline_data <- baseline_data %>%
          dtr_ifwp_hh, dtr_ses_hh, dtr_tes_hh, dtr_onc_hh,
          dct_hh, dct_gov_hh, dct_ngo_hh, dct_fips_hh,
          dtx_payt_hh, dtx_PIT_hh,
+         #dtx_PIT_hh,
          region, hhsize, rexpagg, pcrexp, weight, popweight,
          yn_hh, yg_hh, yt_hh, yd_hh, yc_hh, yf_hh,
          sub_electri_hh, itx_vatx_hh, itx_excx_hh, sub_fuel_hh,
@@ -259,6 +273,14 @@ baseline_data <- baseline_data %>%
          health_hh_mal_hh, health_hh_tb_hh, health_hh_nut_hh, health_hh_other_hh,
          health_hh, educ_hh,i22_return_a, i_ptax,
          Users_fee_hh, Education_fee_hh, Health_fee_hh, pline_mod) 
+
+# baseline_entr_df <- baseline_data %>%
+#   select(hhid, region, district, reside) %>% 
+#   distinct(hhid, .keep_all = TRUE) %>% 
+#   right_join(curr_df_1)
+
+baseline_data <- baseline_data %>%
+  right_join(curr_df_1)
 
 # Remove missing values in hhid
 baseline_data <- baseline_data[!is.na(baseline_data$weight),] 
@@ -291,6 +313,16 @@ baseline_data <- baseline_data %>%
   ) %>% 
   mutate(
     yf_hh = (yd_hh + sub_all_hh - itx_all_hh + educ_hh + health_hh - Users_fee_hh) %>% structure(label = "Final Income")
+  ) %>% 
+  
+  mutate(
+    yg_hh = ifelse(yg_hh < 0, 0, yg_hh),
+    yn_hh = ifelse(yn_hh < 0, 0, yn_hh),
+    yd_hh = ifelse(yd_hh < 0, 0, yd_hh),
+    yp_hh = ifelse(yp_hh < 0, 0, yp_hh),
+    yc_hh = ifelse(yc_hh < 0, 0, yc_hh),
+    yf_hh = ifelse(yf_hh < 0, 0, yf_hh)
+    
   ) %>% 
   mutate(
     
@@ -385,9 +417,20 @@ get_pov_indicator_bl <- function(curr_pline, curr_area, df) {
     pov_sev_yf_pc  = weighted.mean(curr_df$pov_gap_yf_pc_sqrd,  curr_df$weight, na.rm = TRUE)
   )
   
+  # Tot welfare
+  poverty_welf <- tibble(
+    pov_welf_yp_pc  = weighted.mean(curr_df$yp_pc,  curr_df$weight, na.rm = TRUE),
+    pov_welf_yn_pc  = weighted.mean(curr_df$yn_pc,  curr_df$weight, na.rm = TRUE),
+    pov_welf_yg_pc  = weighted.mean(curr_df$yg_pc,  curr_df$weight, na.rm = TRUE),
+    pov_welf_yd_pc  = weighted.mean(curr_df$yd_pc,  curr_df$weight, na.rm = TRUE),
+    pov_welf_yc_pc  = weighted.mean(curr_df$yc_pc,  curr_df$weight, na.rm = TRUE),
+    pov_welf_yf_pc  = weighted.mean(curr_df$yf_pc,  curr_df$weight, na.rm = TRUE)
+  )
+  
+  
   #browser()
   # Poverty measurements matrice
-  summary_tab <- as.data.frame(cbind(t(poverty_headcount_ratio), t(nbr_poor), t(poverty_gap), t(poverty_sev), 
+  summary_tab <- as.data.frame(cbind(t(poverty_headcount_ratio), t(nbr_poor), t(poverty_gap), t(poverty_sev), t(poverty_welf),  
                                      Income = c("Market Income plus pensions", "Net Market Income",
                                                 "Gross Income","Disposable Income","Consumable Income","Final Income"))) %>% 
     pivot_longer(cols = starts_with("V"),
@@ -398,11 +441,136 @@ get_pov_indicator_bl <- function(curr_pline, curr_area, df) {
                               V1 = "Rate of poverty",
                               V2 = "Number of poor",
                               V3 = "Poverty gap",
-                              V4 = "Poverty severity"),
+                              V4 = "Poverty severity",
+                              V5 = "Welfare"),
            `Pre-reform` = round(as.numeric(`Pre-reform`),2),
            Area = curr_area,
            `Poverty line` = curr_pline) 
 
+  return(summary_tab)
+}
+
+
+
+
+get_ineq_indicator_bl <- function(curr_area, df) {
+  
+  if(curr_area == "Country"){
+    curr_df <- df
+  }else{
+    curr_df <- df %>% 
+      filter(reside==curr_area)
+  }
+  
+  # Gini coefficient for each welfare concept
+  gini_tab <- tibble(
+    gini_yp_pc = DescTools::Gini(curr_df$yp_pc, weights = curr_df$weight, na.rm = TRUE),
+    gini_yn_pc = DescTools::Gini(curr_df$yn_pc, weights = curr_df$weight, na.rm = TRUE),
+    gini_yg_pc = DescTools::Gini(curr_df$yg_pc, weights = curr_df$weight, na.rm = TRUE),
+    gini_yd_pc = DescTools::Gini(curr_df$yd_pc, weights = curr_df$weight, na.rm = TRUE),
+    gini_yc_pc = DescTools::Gini(curr_df$yc_pc, weights = curr_df$weight, na.rm = TRUE),
+    gini_yf_pc = DescTools::Gini(curr_df$yf_pc, weights = curr_df$weight, na.rm = TRUE)
+  )
+  
+  # Theil index for each welfare concept
+  theil_tab <- tibble(
+    theil_yp_pc = wINEQ::Theil_L(curr_df$yp_pc, W = curr_df$weight),
+    theil_yn_pc = wINEQ::Theil_L(curr_df$yn_pc, W = curr_df$weight),
+    theil_yg_pc = wINEQ::Theil_L(curr_df$yg_pc, W = curr_df$weight),
+    theil_yd_pc = wINEQ::Theil_L(curr_df$yd_pc, W = curr_df$weight),
+    theil_yc_pc = wINEQ::Theil_L(curr_df$yc_pc, W = curr_df$weight),
+    theil_yf_pc = wINEQ::Theil_L(curr_df$yf_pc, W = curr_df$weight)
+  )
+  
+  # 90/10 ratio for each welfare concept
+  p9010_tab <- tibble(
+    p9010_yp_pc = {
+      q <- wtd.quantile(curr_df$yp_pc, weights = curr_df$weight, probs = c(0.10, 0.90), na.rm = TRUE)
+      q[2] / q[1]
+    },
+    p9010_yn_pc = {
+      q <- wtd.quantile(curr_df$yn_pc, weights = curr_df$weight, probs = c(0.10, 0.90), na.rm = TRUE)
+      q[2] / q[1]
+    },
+    p9010_yg_pc = {
+      q <- wtd.quantile(curr_df$yg_pc, weights = curr_df$weight, probs = c(0.10, 0.90), na.rm = TRUE)
+      q[2] / q[1]
+    },
+    p9010_yd_pc = {
+      q <- wtd.quantile(curr_df$yd_pc, weights = curr_df$weight, probs = c(0.10, 0.90), na.rm = TRUE)
+      q[2] / q[1]
+    },
+    p9010_yc_pc = {
+      q <- wtd.quantile(curr_df$yc_pc, weights = curr_df$weight, probs = c(0.10, 0.90), na.rm = TRUE)
+      q[2] / q[1]
+    },
+    p9010_yf_pc = {
+      q <- wtd.quantile(curr_df$yf_pc, weights = curr_df$weight, probs = c(0.10, 0.90), na.rm = TRUE)
+      q[2] / q[1]
+    }
+  )
+  
+  #browser()
+  # Poverty measurements matrice
+  summary_tab <- as.data.frame(cbind(t(gini_tab), t(theil_tab), t(p9010_tab),
+                                     Income =  c("Market Income plus pensions", "Net Market Income",
+                                                 "Gross Income","Disposable Income","Consumable Income","Final Income"))) %>% 
+    pivot_longer(cols = starts_with("V"),
+                 names_to = "Parameter",
+                 values_to = "Pre-reform",
+                 values_drop_na = TRUE) %>% 
+    mutate(Parameter = recode(Parameter,
+                              V1 = "Gini index",
+                              V2 = "Theil index",
+                              V3 = "90/10 income ratio"),
+           `Pre-reform` = round(as.numeric(`Pre-reform`),2),
+           Area = curr_area) 
+  
+  return(summary_tab)
+}
+
+
+
+
+
+get_revmob_bl <- function(curr_area,df) {
+  
+  if(curr_area == "Country"){
+    curr_df <- df
+  }else{
+    curr_df <- df %>% 
+      filter(reside==curr_area)
+  }
+  
+  curr_df <- curr_df %>%
+    mutate(dtx_payt_hh_bis=ifelse(is.na(dtx_payt_hh_bis),0,dtx_payt_hh_bis)) %>% 
+    mutate(
+      dtx_all_hh_bis = (dtx_PIT_hh + dtx_payt_hh_bis) %>% structure(label="All direct taxes paid, HH total")
+    )
+  
+  
+  
+  rev_mob <- tibble(
+    dtx_all  = sum(curr_df$dtx_all_hh_bis * curr_df$weight, na.rm = TRUE),
+    itx_all  = sum(curr_df$itx_all_hh * curr_df$weight, na.rm = TRUE),
+    dtr_all  = sum(curr_df$dtr_all_hh * curr_df$weight, na.rm = TRUE),
+    sub_all  = sum(curr_df$sub_all_hh * curr_df$weight, na.rm = TRUE)
+  )
+  
+
+  
+  #browser()
+  # Poverty measurements matrice
+  summary_tab <- as.data.frame(cbind(t(rev_mob),
+                                     Parameter =  c("Direct taxes", "Indirect taxes",
+                                                 "Direct transfers","Indirect subsidies"))) %>% 
+    pivot_longer(cols = starts_with("V"),
+                 #names_to = "Parameter",
+                 values_to = "Pre-reform",
+                 values_drop_na = TRUE) %>% 
+    mutate(`Pre-reform` = round(as.numeric(`Pre-reform`),2), Area = curr_area) %>% 
+    select(Parameter, `Pre-reform`, Area)
+  
   return(summary_tab)
 }
 
@@ -420,8 +588,20 @@ baseline_pov_estimates <- map_dfr(lst_pline, function(curr_pline) {
 }) 
 
 
+baseline_ineq_estimates <-  map_dfr(lst_area, function(curr_area) {
+    bind_rows(
+      get_ineq_indicator_bl(curr_area, baseline_data) 
+    )
+  })
+ 
+baseline_data_revmob <- map_dfr(lst_area, function(curr_area) {
+  bind_rows(get_revmob_bl(curr_area,baseline_data))
+})
 
-# Gini results
+
+# 
+# 
+# # Gini results
 # gini_results <- list(
 #   yp_pc  = wINEQ::Gini(baseline_data$yp_pc, W = baseline_data$weight, fast = TRUE, rounded.weights = TRUE),
 #   yg_pc  = wINEQ::Gini(baseline_data$yg_pc, W = baseline_data$weight, fast = TRUE, rounded.weights = TRUE),
@@ -490,6 +670,8 @@ baseline_data <- baseline_data %>%
 # Saving 
 write_rds(baseline_data, paste0(here(),output_folder, "/Shiny Data/baseline_data.rds"))
 write_rds(baseline_pov_estimates, paste0(here(),output_folder, "/Shiny Data/baseline_pov_estimates.rds"))
+write_rds(baseline_ineq_estimates, paste0(here(),output_folder, "/Shiny Data/baseline_ineq_estimates.rds"))
+write_rds(baseline_data_revmob, paste0(here(),output_folder, "/Shiny Data/baseline_data_revmob.rds"))
 
 ######################## Geospatial analysis #########################################
 
@@ -562,9 +744,19 @@ get_geo_pov_indicator_bl <- function(curr_pline, curr_df) {
     pov_sev_yf_pc  = weighted.mean(curr_df$pov_gap_yf_pc_sqrd,  curr_df$weight, na.rm = TRUE)
   )
   
+  # Tot welfare
+  poverty_welf <- tibble(
+    pov_welf_yp_pc  = weighted.mean(curr_df$yp_pc,  curr_df$weight, na.rm = TRUE),
+    pov_welf_yn_pc  = weighted.mean(curr_df$yn_pc,  curr_df$weight, na.rm = TRUE),
+    pov_welf_yg_pc  = weighted.mean(curr_df$yg_pc,  curr_df$weight, na.rm = TRUE),
+    pov_welf_yd_pc  = weighted.mean(curr_df$yd_pc,  curr_df$weight, na.rm = TRUE),
+    pov_welf_yc_pc  = weighted.mean(curr_df$yc_pc,  curr_df$weight, na.rm = TRUE),
+    pov_welf_yf_pc  = weighted.mean(curr_df$yf_pc,  curr_df$weight, na.rm = TRUE)
+  )
+  
   
   # Poverty measurements matrice
-  summary_tab <- as.data.frame(cbind(t(poverty_headcount_ratio), t(nbr_poor), t(poverty_gap), t(poverty_sev), 
+  summary_tab <- as.data.frame(cbind(t(poverty_headcount_ratio), t(nbr_poor), t(poverty_gap), t(poverty_sev), t(poverty_welf),
                                      Income = c("Market Income plus pensions", "Net Market Income",
                                                 "Gross Income","Disposable Income","Consumable Income","Final Income"))) %>% 
     pivot_longer(cols = starts_with("V"),
@@ -575,7 +767,9 @@ get_geo_pov_indicator_bl <- function(curr_pline, curr_df) {
                               V1 = "Rate of poverty",
                               V2 = "Number of poor",
                               V3 = "Poverty gap",
-                              V4 = "Poverty severity"),
+                              V4 = "Poverty severity",
+                              V5 = "Welfare"
+                              ),
            `Pre-reform` = round(as.numeric(`Pre-reform`),2),
            `Poverty line` = curr_pline) 
   

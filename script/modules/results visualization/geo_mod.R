@@ -47,12 +47,12 @@ geo_pov_mod_ui <- function(id) {
                                 
                                 # all other geography filters
                                 # note these filters are enabled/disabled in the server function based on selected indicator
-                                  radioButtons(inputId = ns("geo_pov_parameter_filter"), label = "Parameter to show:", choices = pov_parameter_list),
+                                  radioButtons(inputId = ns("geo_pov_parameter_filter"), label = "Parameter to show:", choices = setdiff(pov_parameter_list,"Welfare")),
                                   radioButtons(inputId = ns("geo_pov_areas_filter"), label = "Areas:", choices = pov_geo_area_list)
                                 
                             )
                         ) # close all accordion
-                       
+                )
       ), # close sidebar
       
       layout_column_wrap(
@@ -98,20 +98,8 @@ geo_pov_mod_ui <- function(id) {
                                div(id = ns("geo_pov_download_chart"), download_chart_mod_ui(ns("download_geo_pov_chart"))),
                                div(id = ns("geo_pov_download_data"), download_data_btns_ui(ns("download_geo_pov_data"))))
         )
-        
-        # map card -------------------
-        # 
-        # div(id = ns("geo_pov_map_wrapper"),
-        #     card(
-        #       height = 600,
-        #       full_screen = FALSE,
-        #       leafletOutput(ns("geo_pov_map")) %>%  # map
-        #         withSpinner() %>% 
-        #         bslib::as_fill_carrier() 
-        #     ))
-        # 
+
       ) # close layout column wrap
-      )
     ) # close layout sidebar
   ) # close taglist
 } # close ui function 
@@ -126,7 +114,7 @@ geo_pov_mod_ui <- function(id) {
 # geo_selections = reactive values in main server stores global geography selections
 # selected_profile = name of reactive value stores selected profile from main server script
 
-geo_pov_mod_server <- function(id, simulated_geo_data, root_session) {
+geo_pov_mod_server <- function(id, simulated_geo, root_session) {
   moduleServer(id, function(input, output, session) {
     
     
@@ -148,9 +136,9 @@ geo_pov_mod_server <- function(id, simulated_geo_data, root_session) {
     
     # prepares data to be plotted --------------------------------------------
     geo_data <- reactive({
-      req(simulated_geo_data())
+      req(simulated_geo())
       
-      temp_data <- simulated_geo_data() 
+      temp_data <- simulated_geo() 
       
       # Apply filters based on user inputs
       if(!is.null(input$geo_pov_parameter_filter)) {

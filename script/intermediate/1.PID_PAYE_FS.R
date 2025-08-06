@@ -5,47 +5,51 @@
 
 
 HH_MOD_E <- read_dta(paste0(here(), hh_data_path, "/HH_MOD_E.dta"))
-
+HH_MOD_N1 <- read_dta(paste0(here(), hh_data_path, "/HH_MOD_N1.dta"))
+HH_MOD_N2 <- read_dta(paste0(here(), hh_data_path, "/HH_MOD_N2.dta"))
 ################### Household characteristics ##################################
 basicvars_ihs5 <- read_dta(paste0(here(), hh_data_path, "/basicvars_ihs5.dta"))
 indivivars_ihs5 <- read_dta(paste0(here(), data_folder,"/Household Surveys/IHS5 2019-20/Intermediate/indivivars_ihs5.dta"))
 yd <- read_dta(paste0(here(), data_folder,"/Output/yd.dta"))
-################### Individual Characteristics #################################
 
-# --- Merge household and individual characteristics
-curr_df <- HH_MOD_E %>%
+################################################################################
+######### PAYE TAX PRE-REFORM ##################################################
+################################################################################
+curr_df_0 <- HH_MOD_E %>%
   left_join(basicvars_ihs5, by = "HHID") %>%
   left_join(indivivars_ihs5, by = c("HHID", "PID")) %>%
+  left_join(HH_MOD_N1) %>% 
   mutate(
     active = ifelse((15 <= age) & (age >= 64), 1, 0)
   )
+  
 
 # --- Binarize activity participation: hh_e06_1a to hh_e06_6
 act_vars <- c("1a", "1b", "1c", "2", "3", "4", "5", "6")
 for (act in act_vars) {
   var <- paste0("hh_e06_", act)
-  if (var %in% names(curr_df)) {
-    curr_df <- curr_df %>% 
+  if (var %in% names(curr_df_0)) {
+    curr_df_0 <- curr_df_0 %>% 
       mutate(!!sym(var) := ifelse(!!sym(var)==1, 1, 0) %>% structure(label = attr(!!sym(var), "label")))
   }
 }
 
 # Rename hh_e06_8a and 8b
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   rename(
     act_1 = hh_e06_8a,
     act_2 = hh_e06_8b
   )
 
 # --- Compute agri and activities totals
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(
     agri = rowSums(select(., starts_with("hh_e06_1")), na.rm = TRUE),
     activities = rowSums(select(., starts_with("hh_e06_")), na.rm = TRUE)
   )
 
 # --- Labor profile
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(
     labor = case_when(
       activities == 0 ~ 0,
@@ -71,39 +75,39 @@ for (val in vals) {
   old_var <- paste0("hh_e", val)
   new_var <- paste0("i_time", val)
   
-  if (old_var %in% names(curr_df)) {
+  if (old_var %in% names(curr_df_0)) {
     # Recode 0 to NA
-    curr_df <- curr_df %>% 
+    curr_df_0 <- curr_df_0 %>% 
       mutate(!!sym(old_var) := ifelse(!!sym(old_var)==0, NA, !!sym(old_var)) %>% structure(label = attr(!!sym(old_var), "label")))
     
     
     # Winsorize
-    q <- quantile(curr_df %>% select(!!sym(old_var)) %>% pull(), probs = c(0.05, 0.95), na.rm = TRUE)
+    q <- quantile(curr_df_0 %>% dplyr::select(!!sym(old_var)) %>% pull(), probs = c(0.05, 0.95), na.rm = TRUE)
     
-    curr_df <- curr_df %>% 
+    curr_df_0 <- curr_df_0 %>% 
       mutate(!!sym(old_var) := ifelse(!!sym(old_var) > q[2], q[2], ifelse(!!sym(old_var) < q[1], q[1],!!sym(old_var))) %>% structure(label = attr(!!sym(old_var), "label")))
     
     
     # Rename
-    curr_df <- curr_df %>% rename(!!sym(new_var) := !!sym(old_var))
+    curr_df_0 <- curr_df_0 %>% rename(!!sym(new_var) := !!sym(old_var))
   }
 }
 
 # --- Total time and shares
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(i_time0 = rowSums(select(., starts_with("i_time")), na.rm = TRUE))
 
 for (val in vals) {
   base_var <- paste0("i_time", val)
   share_var <- paste0("i_timeshare", val)
   
-  curr_df <- curr_df %>% 
+  curr_df_0 <- curr_df_0 %>% 
     mutate(!!sym(share_var) := ifelse(i_time0 == 0, 0, !!sym(base_var) / i_time0) %>% structure(label = paste0('Share of',attr(!!sym(base_var), "label"))))
   
 }
 
 
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(
     # Recode values
     hh_e07a_1 = case_when(
@@ -127,7 +131,7 @@ curr_df <- curr_df %>%
 # Assume your dataset is called df and already loaded
 
 # Convert hh_e19a to lowercase
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(hh_e19a = tolower(hh_e19a))
 
 # Map hh_e19b codes to occupation labels
@@ -136,7 +140,7 @@ curr_df <- curr_df %>%
 # )
 
 # Create the hh_e19a_activity column
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(hh_e19a_activity = recode(as.character(hh_e19b), 
                                    `1` = "Physical Scientists and related technicians",
                                    `2` = "Architects, Surveyors and related workers",
@@ -224,15 +228,15 @@ curr_df <- curr_df %>%
                                    ))
 
 # Generate job class using group index of activity labels
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(job_class = as.integer(factor(hh_e19a_activity)))
 
 # Rename hh_e21 to employer
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   rename(employer = hh_e21)
 
 # Hourly wage conversion based on payment frequency
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(wage = case_when(
     hh_e26b == 3 ~ hh_e25,
     hh_e26b == 4 ~ hh_e25 / 7,
@@ -247,7 +251,7 @@ winsor <- function(x, probs = c(0.05, 0.95)) {
 }
 
 # Apply winsorization to the wage-related variables
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(across(c(hh_e22, hh_e23, hh_e24_1, hh_e24), winsor)) %>%
   mutate(
     hh_e24_1 = ifelse(hh_e24_1 == 0 & hh_e24 > 0, hh_e24, hh_e24_1)
@@ -261,7 +265,7 @@ curr_df <- curr_df %>%
          a_return = h_return * hh_e24 * hh_e23 * hh_e22)
 
 # Gratuity calculations
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(
     hh_e27 = winsor(hh_e27)
   ) %>% 
@@ -282,7 +286,7 @@ curr_df <- curr_df %>%
          a_gratuity = h_gratuity * hh_e24 * hh_e23 * hh_e22)
 
 # Ganyu (casual labor) calculations
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(
     hh_e59 = winsor(hh_e59),
     hh_e58 = ifelse(hh_e58 == 54, 7, hh_e58),
@@ -292,7 +296,7 @@ curr_df <- curr_df %>%
   )
 
 # Renaming to match Stata output
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   rename(
     i22_class1 = job_class,
     i22_employer = employer,
@@ -331,8 +335,8 @@ curr_df <- curr_df %>%
   )
 
 
-curr_df <- curr_df %>%
-  select(HHID, PID, starts_with("i")) %>% 
+curr_df_0 <- curr_df_0 %>%
+  dplyr::select(HHID, PID, starts_with("i")) %>% 
   mutate(across(starts_with("i11"), ~ structure(.x, label = "Agriculture:"), .names = "{.col}")) %>% 
   mutate(across(starts_with("i12"), ~ structure(.x, label = "Livestock:"), .names = "{.col}")) %>% 
   mutate(across(starts_with("i14"), ~ structure(.x, label = "Fisheries:"), .names = "{.col}")) %>% 
@@ -346,12 +350,12 @@ curr_df <- curr_df %>%
 for (h in c(11, 12, 14, 21, 22, 23, 99)) {
   time_var <- paste0("i", h, "_time")
   timeshare_var <- paste0("i", h, "_times")
-  if (time_var %in% names(curr_df)) {
-    curr_df <- curr_df %>%
+  if (time_var %in% names(curr_df_0)) {
+    curr_df_0 <- curr_df_0 %>%
       mutate(!!sym(time_var) := !!sym(time_var) %>% structure(label = paste0(labelled::var_label(!!sym(time_var)), " Time spent (last week)")))
   }
-  if (timeshare_var %in% names(curr_df)) {
-    curr_df <- curr_df %>%
+  if (timeshare_var %in% names(curr_df_0)) {
+    curr_df_0 <- curr_df_0 %>%
       mutate(!!sym(timeshare_var) := !!sym(timeshare_var) %>% structure(label = paste0(labelled::var_label(!!sym(timeshare_var)), " Time spent (last week)")))
   }
 }
@@ -361,40 +365,40 @@ for (h in c(11, 12, 14, 21, 22, 23, 99)) {
 for (h in c(21, 23, 99)) {
   time2_var <- paste0("i", h, "_time2")
   timeshare2_var <- paste0("i", h, "_times2")
-  if (time2_var %in% names(curr_df)) {
-    curr_df <- curr_df %>%
+  if (time2_var %in% names(curr_df_0)) {
+    curr_df_0 <- curr_df_0 %>%
       mutate(!!sym(time2_var) := !!sym(time2_var) %>% structure(label = paste0(labelled::var_label(!!sym(time2_var)), " Time spent (last week)")))
   }
   if (timeshare2_var %in% names(data)) {
-    curr_df <- curr_df %>%
+    curr_df_0 <- curr_df_0 %>%
       mutate(!!sym(timeshare2_var) := !!sym(timeshare2_var) %>% structure(label = paste0(labelled::var_label(!!sym(timeshare2_var)), " Time spent (share)")))
   }
 }
 
 
 # Manual labels for individual variables
-var_label(curr_df$i11_profile)   <- "Agriculture: Profile"
-var_label(curr_df$i22_class1)    <- "Paid job: Two digits OTI job classification"
-var_label(curr_df$i22_employer)  <- "Paidjob: Emplyer"
-var_label(curr_df$i22_return_h)  <- "Paid job: Hour return"
-var_label(curr_df$i22_return_a)  <- "Paid job: Annual return"
-var_label(curr_df$i22_hours_d)   <- "Paid job: Daily work hours"
-var_label(curr_df$i22_hours_a)   <- "Paid job: Annual work hours"
-var_label(curr_df$i22_return2_h) <- "Paid job: Hour Gratuity"
-var_label(curr_df$i22_return2_a) <- "Paid job: Annual Gratuity"
-var_label(curr_df$i23_return_a)  <- "Ganyu: Annual return"
-var_label(curr_df$i23_return_d)  <- "Ganyu: Daily return"
-var_label(curr_df$i23_days)      <- "Ganyu: work days per year"
-var_label(curr_df$i_profile)     <- "Profile"
-var_label(curr_df$i_time)        <- "Total time use (Last week)"
+var_label(curr_df_0$i11_profile)   <- "Agriculture: Profile"
+var_label(curr_df_0$i22_class1)    <- "Paid job: Two digits OTI job classification"
+var_label(curr_df_0$i22_employer)  <- "Paidjob: Emplyer"
+var_label(curr_df_0$i22_return_h)  <- "Paid job: Hour return"
+var_label(curr_df_0$i22_return_a)  <- "Paid job: Annual return"
+var_label(curr_df_0$i22_hours_d)   <- "Paid job: Daily work hours"
+var_label(curr_df_0$i22_hours_a)   <- "Paid job: Annual work hours"
+var_label(curr_df_0$i22_return2_h) <- "Paid job: Hour Gratuity"
+var_label(curr_df_0$i22_return2_a) <- "Paid job: Annual Gratuity"
+var_label(curr_df_0$i23_return_a)  <- "Ganyu: Annual return"
+var_label(curr_df_0$i23_return_d)  <- "Ganyu: Daily return"
+var_label(curr_df_0$i23_days)      <- "Ganyu: work days per year"
+var_label(curr_df_0$i_profile)     <- "Profile"
+var_label(curr_df_0$i_time)        <- "Total time use (Last week)"
 
 # Ensure i22_class1 is numeric
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(i22_class1 = as.numeric(i22_class1),
          i22_return_a = ifelse(is.na(i22_return_a), 0, i22_return_a))
 
 # Apply payroll tax logic
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(
     p_tax = case_when(
       i22_return_a <= 1800000 ~ 0,
@@ -418,42 +422,154 @@ curr_df <- curr_df %>%
     i_ptax = ifelse(p_tax > 0, 1, 0))
 
 # Label new variables
-var_label(curr_df$p_tax) <- "Payroll tax"
-var_label(curr_df$pp_tax) <- "Percent Payroll Tax"
+var_label(curr_df_0$p_tax) <- "Payroll tax"
+var_label(curr_df_0$pp_tax) <- "Percent Payroll Tax"
 
 # Rename ID variables to match merge key (optional)
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   rename(hhid = HHID, pid = PID)
 
 # Adding weight data
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   left_join(yd, by=c("hhid"="hhid", "pid"="pid"))
 
 
-# Summary statistics
-# Total payroll tax (weighted)
-total_p_tax <- weighted.mean(curr_df$p_tax, round(curr_df$weight, 0), na.rm = TRUE)
-mean_p_tax <- weighted.mean(curr_df$p_tax[curr_df$p_tax > 0], round(curr_df$weight[curr_df$p_tax > 0], 0), na.rm = TRUE)
-
-# Frequency of PAYE payers
-table_ptax <- table(curr_df$i_ptax, round(curr_df$weight))
-table_ptax_pid1 <- table(curr_df$i_ptax[curr_df$pid == 1], round(curr_df$weight[curr_df$pid == 1]))
-
-# Print summary
-cat("Total payroll tax (weighted mean):", total_p_tax, "\n")
-cat("Mean payroll tax among taxpayers (weighted):", mean_p_tax, "\n")
-
-
+# 
+# # Summary statistics
+# # Total payroll tax (weighted)
+# total_p_tax <- weighted.mean(curr_df_0$p_tax, round(curr_df_0$weight, 0), na.rm = TRUE)
+# mean_p_tax <- weighted.mean(curr_df_0$p_tax[curr_df_0$p_tax > 0], round(curr_df_0$weight[curr_df_0$p_tax > 0], 0), na.rm = TRUE)
+# 
+# # Frequency of PAYE payers
+# table_ptax <- table(curr_df_0$i_ptax, round(curr_df_0$weight))
+# table_ptax_pid1 <- table(curr_df_0$i_ptax[curr_df_0$pid == 1], round(curr_df_0$weight[curr_df_0$pid == 1]))
+# 
+# # Print summary
+# cat("Total payroll tax (weighted mean):", total_p_tax, "\n")
+# cat("Mean payroll tax among taxpayers (weighted):", mean_p_tax, "\n")
+# 
+# 
 # Create decile for yd_pc using weights, only for head (pid == 1)
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   mutate(
     decile = ifelse(pid == 1,
                      ntile(yd_pc, 10),
-                     NA)
+                     NA),
+    quartile = ifelse(pid == 1,
+                      ntile(yd_pc, 5),
+                      NA)
   )
 
 # Fill in missing deciles for other members of same household
-curr_df <- curr_df %>%
+curr_df_0 <- curr_df_0 %>%
   group_by(hhid) %>%
   fill(decile, .direction = "downup") %>%
+  fill(quartile, .direction = "downup") %>%
   ungroup()
+
+################################################################################
+######### CORPORATE TAX PRE-REFORM #############################################
+################################################################################
+
+
+# Ensure hh_n09c is numeric
+curr_df_1 <- HH_MOD_N1 %>%
+  left_join(HH_MOD_N2, multiple = "all", relationship = "one-to-many", by=c("HHID"="HHID")) %>% 
+  mutate(hh_n09c = as.character(hh_n09c))
+
+curr_df_1 <- curr_df_1 %>%
+  mutate(industry_sectors = case_when(
+    hh_n09c %in% as.character(c("01", "02", "03")) ~ 1,
+    hh_n09c %in% as.character(c("1", "2", "3")) ~ 1,
+    hh_n09c %in% as.character(c("05", "06", "07", "08", "09")) ~ 2,
+    hh_n09c %in% as.character(10:33) ~ 3,
+    hh_n09c %in% as.character(35:39) ~ 4,
+    hh_n09c %in% as.character(41:43) ~ 5,
+    hh_n09c %in% as.character(45:47) ~ 6,
+    hh_n09c %in% as.character(49:53) ~ 7,
+    hh_n09c %in% as.character(c(55, 56)) ~ 8,
+    hh_n09c %in% as.character(58:63) ~ 9,
+    hh_n09c %in% as.character(64:66) ~ 10,
+    hh_n09c == "68" ~ 11,
+    hh_n09c %in% as.character(69:75) ~ 12,
+    hh_n09c == "77" ~ 13,
+    hh_n09c == "84" ~ 14,
+    hh_n09c == "85" ~ 15,
+    hh_n09c %in% as.character(c(86, 88)) ~ 16,
+    hh_n09c %in% as.character(90:93) ~ 17,
+    hh_n09c %in% as.character(c(94:99, "00")) ~ 18,
+    TRUE ~ 0
+  ),
+  hh_n15b = as.numeric(hh_n15b)
+  ) %>%
+  mutate(
+    industry_sectors = ifelse(industry_sectors == 0 & !is.na(hh_n09c), 18, industry_sectors) %>% structure(label="Industry sector")
+  )
+
+
+curr_df_1 <- curr_df_1 %>%
+  mutate(
+    tax_rate = case_when(
+      (industry_sectors == 1) & (hh_n15b >= 2010) ~ 0,
+      (industry_sectors == 4) & (hh_n15b >= 2010) ~ 0,
+      (industry_sectors == 1) & (hh_n15b < 2010) ~ 15,
+      (industry_sectors == 4) & (hh_n15b < 2010) ~ 15,
+      (industry_sectors == 2) ~ 30,
+      hh_n21a == 1 & hh_n21b == 1 ~ 30,
+      TRUE ~ NA
+    )
+  ) 
+
+
+curr_df_1 <- curr_df_1 %>% 
+  mutate(
+    tax_rate = ifelse(is.na(tax_rate), 15, tax_rate)
+  ) %>% 
+  mutate(tax_rate = ifelse(hh_n40 <= 1000, 0, tax_rate) %>% structure(label="Corporate tax rate")) %>% 
+  mutate(
+    tax = hh_n40 * (tax_rate / 100),
+    pid = 1
+  ) %>% 
+  mutate(tax = ifelse(is.na(tax), 0, tax))
+
+write_rds(curr_df_1 %>% 
+            select(HHID,industry_sectors,tax_rate,hh_n09a,hh_n21a,hh_n21b,hh_n15b,hh_n40), 
+          paste0(here(),output_folder, "/Shiny Data/baseline_data_entreprise.rds"))
+
+
+
+curr_df_1 <- curr_df_1 %>%
+  group_by(HHID) %>%
+  mutate(
+    dtx_payt_hh_bis = sum(tax, na.rm = TRUE) %>% structure(label="Corporate direct tax")
+  ) %>% 
+  ungroup() %>% 
+  rename(hhid = HHID) %>% 
+  #filter(hh_n09a==1) %>% 
+  distinct(hhid, .keep_all = TRUE) %>% 
+  dplyr::select(hhid, dtx_payt_hh_bis) %>% 
+  mutate(i_dtx_payt_hh = ifelse(dtx_payt_hh_bis>0,1,0) %>% structure(label="HH payed corporate tax")) 
+
+curr_df_1 <- curr_df_1 %>% 
+  left_join(baseline_data %>% select(hhid, pid, reside, weight) %>% filter(pid==1))
+
+################################################################################
+######### VAT TAX PRE-REFORM ###################################################
+################################################################################
+
+
+
+
+
+
+
+
+################################################################################
+######### MERGING PRE-REFORM DATA ##############################################
+################################################################################
+
+# curr_df <- curr_df_0 %>% 
+#   left_join(curr_df_1) %>% 
+#   mutate(dtx_payt_hh = ifelse(is.na(dtx_payt_hh), 0, dtx_payt_hh),
+#          i_dtx_payt_hh = ifelse(is.na(i_dtx_payt_hh), 0, i_dtx_payt_hh)
+#   )

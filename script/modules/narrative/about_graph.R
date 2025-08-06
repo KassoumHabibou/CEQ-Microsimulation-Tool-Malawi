@@ -190,6 +190,48 @@ help_indirect_tax_tab <- tagList(
 )
 
 
+help_ineq_chart_tab <- tagList(
+  tags$div(
+    tags$h6("What does this section show?", class = "chart-header"),
+    tags$p("This section presents the level of income inequality in the population, based on different income concepts (e.g., market, disposable, final income). 
+            It allows users to assess how taxes and transfers affect the distribution of income."),
+    tags$p("Three standard inequality measures are reported: the Gini coefficient, the Theil index, and the 90/10 income ratio.")
+  ),
+  
+  tags$div(
+    tags$h6("1. Gini Coefficient", class = "chart-header"),
+    tags$p("The Gini coefficient is a widely used measure of income inequality. It ranges from 0 to 1, where:"),
+    tags$ul(
+      tags$li("0 indicates perfect equality (everyone has the same income)"),
+      tags$li("1 indicates perfect inequality (one person has all the income)")
+    ),
+    tags$p("In the CEQ analysis, a decrease in the Gini coefficient between market income and disposable income indicates that 
+            taxes and transfers have reduced inequality.")
+  ),
+  
+  tags$div(
+    tags$h6("2. Theil Index", class = "chart-header"),
+    tags$p("The Theil index is an entropy-based measure of inequality that captures income dispersion in a population."),
+    tags$p("It is sensitive to income differences across the distribution, especially among higher-income individuals."),
+    tags$p("A lower Theil value implies a more equal distribution of income. It also allows for decomposition across population subgroups, 
+            making it useful for regional or group-based inequality analysis.")
+  ),
+  
+  tags$div(
+    tags$h6("3. 90/10 Income Ratio", class = "chart-header"),
+    tags$p("This measure compares the income of the richest 10% of the population (90th percentile) to the income of the poorest 10% (10th percentile)."),
+    tags$p("A higher ratio means greater inequality between top and bottom earners."),
+    tags$p("Unlike Gini and Theil, this indicator is intuitive and easy to interpret, highlighting the income gap between the extremes of the distribution.")
+  ),
+  
+  tags$div(
+    tags$h6("Why are inequality measures important in CEQ analysis?", class = "chart-header"),
+    tags$p("These indicators help assess whether fiscal policy promotes a fairer distribution of income."),
+    tags$p("By comparing inequality before and after taxes and transfers, users can evaluate whether policies are equitable and aligned with development goals."),
+    tags$p(HTML("To learn more about inequality and fiscal policy, visit the <a href='https://commitmenttoequity.org' target='_blank'>CEQ Institute website</a>."))
+  )
+)
+
 
 help_direct_transf_tab <- tagList(
   tags$div(

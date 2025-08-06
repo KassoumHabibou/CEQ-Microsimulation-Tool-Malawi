@@ -56,12 +56,19 @@ list.files(paste0(here(),"/script/modules/buttons"), full.names = TRUE, recursiv
   map(~ source(.))
 
 source(paste0(here(),"/script/graph_functions.R"))
-source(paste0(here(),"/script/01_simulated function.R"))
-
+source(paste0(here(),"/script/01_pov_estimates.R"))
+source(paste0(here(),"/script/02_geo_estimates.R"))
+source(paste0(here(),"/script/03_ineq_estimates.R"))
+source(paste0(here(),"/script/04_revmob_estimates.R"))
 # 3. Required datafiles ------------------------------------------------------------
 bl_df <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_data.rds"))
+bl_df_entreprise <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_data_entreprise.rds"))
 bl_cncpts <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_pov_estimates.rds"))
+bl_ineq <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_ineq_estimates.rds"))
 bl_geo_cncpts <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_geo_pov_estimates.rds"))
+bl_revmob <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_data_revmob.rds"))
+bl_itx <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_data_itx.rds"))
+
 
 
 ######################## Loading the datasets ###############################
@@ -75,6 +82,8 @@ mlw_bound_district <- read_sf(paste0(here(),output_folder,"/Shapefile/district_g
 # when intermediate zone/localities are selected to reduce the number of IZ/localities
 pov_parameter_list <- sort(unique(bl_cncpts$Parameter)) 
 pov_area_list <- sort(unique(bl_cncpts$Area)) 
+ineq_parameter_list <- sort(unique(bl_ineq$Parameter)) 
+ineq_area_list <- sort(unique(bl_ineq$Area)) 
 pov_geo_area_list <- sort(unique(bl_geo_cncpts$Area)) 
 pov_geo_income_list <- sort(unique(bl_geo_cncpts$Income)) 
 
