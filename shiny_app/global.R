@@ -13,26 +13,41 @@
 
 ######################## Importing library and external files ##################
 ### List of required packages
-required_packages <- c("tidyverse", "dplyr","haven","here","DescTools","labelled",
-                       "survey","wINEQ","Hmisc","purrr","bslib","shiny","tidyr",
-                       "shinyFeedback","phsstyles","bsicons","shinyjs","cicerone",
-                       "shinyjs","highcharter","shinycssloaders","reactable","sf",
-                       "leaflet","htmlwidgets","shinytoastr")
 
-#jsfile <- "https://rawgit.com/rowanwins/leaflet-easyPrint/gh-pages/dist/bundle.js" 
-### Check if packages are installed
-missing_packages <- setdiff(required_packages, installed.packages()[,"Package"])
 
-### Install missing packages
-if (length(missing_packages) > 0) {
-  install.packages(missing_packages)
-}
 
-### Load all packages
-lapply(setdiff(required_packages,"plyr"), library, character.only = TRUE)
+options(encoding = "UTF-8")
+# Individual package loading
 
-# Remove all objects
-rm(list = ls())
+library(dplyr)
+library(tidyverse)
+library(purrr)
+library(tibble)
+library(haven)
+library(here)
+library(DescTools)
+library(labelled)
+library(survey)
+library(wINEQ)
+library(Hmisc)
+library(purrr)
+library(bslib)
+library(shiny)
+library(tidyr)
+library(shinyFeedback)
+library(bsicons)
+library(shinyjs)
+library(cicerone)
+library(highcharter)
+library(shinycssloaders)
+library(reactable)
+library(sf)
+library(leaflet)
+library(htmlwidgets)
+library(shinytoastr)
+library(RColorBrewer)
+library(rlang)
+library(shinyWidgets)
 
 # Set vector size to maximum value
 # mem.maxVSize(vsize = Inf)
@@ -43,7 +58,6 @@ rm(list = ls())
 ## Set file-paths
 data_folder <- "/input"
 output_folder <- "/output"
-script_path <- paste0(data_folder, "/Script")
 
 # 2. Sourcing modules functions  ------------------------
 list.files(paste0(here(),"/script/modules/results visualization"), full.names = TRUE, recursive = TRUE) %>% 
@@ -56,19 +70,42 @@ list.files(paste0(here(),"/script/modules/buttons"), full.names = TRUE, recursiv
   map(~ source(.))
 
 source(paste0(here(),"/script/graph_functions.R"))
+source(paste0(here(),"/script/helper_UI.R"))
+source(paste0(here(),"/script/00_main_estimates.R"))
 source(paste0(here(),"/script/01_pov_estimates.R"))
 source(paste0(here(),"/script/02_geo_estimates.R"))
 source(paste0(here(),"/script/03_ineq_estimates.R"))
 source(paste0(here(),"/script/04_revmob_estimates.R"))
-# 3. Required datafiles ------------------------------------------------------------
-bl_df <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_data.rds"))
-bl_df_entreprise <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_data_entreprise.rds"))
-bl_cncpts <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_pov_estimates.rds"))
-bl_ineq <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_ineq_estimates.rds"))
-bl_geo_cncpts <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_geo_pov_estimates.rds"))
-bl_revmob <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_data_revmob.rds"))
-bl_itx <- readRDS(paste0(here(),output_folder,"/Shiny Data/baseline_data_itx.rds"))
+source(paste0(here(),"/script/05_incid_estimates.R"))
 
+
+# 3. Required datafiles ------------------------------------------------------------
+bl_df <- readRDS(paste0(here(),output_folder,"/shiny_data/baseline_data.rds"))
+bl_df_firm <- readRDS(paste0(here(),output_folder,"/shiny_data/baseline_data_firm.rds"))
+bl_cncpts <- readRDS(paste0(here(),output_folder,"/shiny_data/baseline_pov_estimates.rds"))
+bl_ineq <- readRDS(paste0(here(),output_folder,"/shiny_data/baseline_ineq_estimates.rds"))
+bl_geo_cncpts <- readRDS(paste0(here(),output_folder,"/shiny_data/baseline_geo_pov_estimates.rds"))
+bl_revmob <- readRDS(paste0(here(),output_folder,"/shiny_data/baseline_data_revmob.rds"))
+bl_itx <- readRDS(paste0(here(),output_folder,"/shiny_data/baseline_data_itx.rds"))
+
+# 4. Some tables -------------------------------------------------------------------
+# ---- Taxes catalogs ----
+vat_catalog        <- readRDS(paste0(here(), output_folder, "/shiny_data/vat_catalog.rds"))
+excise_catalog     <- readRDS(paste0(here(), output_folder, "/shiny_data/excise_catalog.rds"))
+
+# ---- Direct cash transfer catalogs (aggregate) ----
+dct_catalog        <- readRDS(paste0(here(), output_folder, "/shiny_data/dct_catalog.rds"))
+dct_fips_catalog   <- readRDS(paste0(here(), output_folder, "/shiny_data/dct_fips_catalog.rds"))
+
+# ---- Near-cash transfer catalogs (each variable separately) ----
+dtr_frmz_hh_catalog <- readRDS(paste0(here(), output_folder, "/shiny_data/dtr_frmz_hh_catalog.rds"))  # Free maize transfer (HH)
+dtr_nfra_hh_catalog <- readRDS(paste0(here(), output_folder, "/shiny_data/dtr_nfra_hh_catalog.rds"))  # NFRA food aid (HH)
+dtr_masaf_hh_catalog <- readRDS(paste0(here(), output_folder, "/shiny_data/dtr_masaf_hh_catalog.rds")) # MASAF public works (HH)
+dtr_ffwk_hh_catalog <- readRDS(paste0(here(), output_folder, "/shiny_data/dtr_ffwk_hh_catalog.rds"))  # Food or cash for work (HH)
+dtr_ifwp_hh_catalog <- readRDS(paste0(here(), output_folder, "/shiny_data/dtr_ifwp_hh_catalog.rds"))  # Input-for-work programme (HH)
+dtr_ses_hh_catalog  <- readRDS(paste0(here(), output_folder, "/shiny_data/dtr_ses_hh_catalog.rds"))   # Secondary education scholarship (HH)
+dtr_tes_hh_catalog  <- readRDS(paste0(here(), output_folder, "/shiny_data/dtr_tes_hh_catalog.rds"))   # Tertiary education scholarship (HH)
+dtr_onc_hh_catalog  <- readRDS(paste0(here(), output_folder, "/shiny_data/dtr_onc_hh_catalog.rds"))   # Other near-cash transfers (HH)
 
 
 ######################## Loading the datasets ###############################
@@ -86,6 +123,8 @@ ineq_parameter_list <- sort(unique(bl_ineq$Parameter))
 ineq_area_list <- sort(unique(bl_ineq$Area)) 
 pov_geo_area_list <- sort(unique(bl_geo_cncpts$Area)) 
 pov_geo_income_list <- sort(unique(bl_geo_cncpts$Income)) 
+
+
 
 
 # 5. Dashboard theme ---------------------------------------------------------------
