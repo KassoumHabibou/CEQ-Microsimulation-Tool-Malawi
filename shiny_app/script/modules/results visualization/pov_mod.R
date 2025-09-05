@@ -44,13 +44,21 @@ pov_mod_ui <- function(id) {
                 radioButtons(
                   inputId = ns("parameter_filter"),
                   label = "Parameter to show:",
-                  choices = setdiff(pov_parameter_list, "Welfare")
+                  choices = setdiff(pov_parameter_list, "Welfare"), selected = "Rate of poverty"
                 ),
                 radioButtons(
                   inputId = ns("areas_filter"),
                   label = "Areas:",
                   choices = pov_area_list
                 )
+              ),
+              #  chart vs trend selector
+              radioButtons(
+                inputId = ns("chart_view_mode"),
+                label   = "View as:",
+                choices = c("Bar chart" = "bar", "Trend (line)" = "trend"),
+                selected = "bar",
+                inline  = TRUE
               )
             )
           )
@@ -156,6 +164,11 @@ pov_mod_server <- function(id, simulated_pov, root_session) {
         temp_data <- temp_data %>% filter(`Poverty line` == input$pov_line)
       }
       
+      if(input$parameter_filter=="Number of poor") {
+        temp_data <- temp_data %>%
+          mutate(across(where(is.numeric), ~ round(.x, 0)))
+      }
+      
       temp_data
     })
 
@@ -220,25 +233,34 @@ pov_mod_server <- function(id, simulated_pov, root_session) {
         TRUE ~ paste0(selected_parameter, " by Income Concept")
       )
       
-        create_pov_bar_chart(filtered_microsim_data(),
+      # Decide which chart to draw
+      if (identical(input$chart_view_mode, "trend")) {
+        
+        hc <- create_pov_trend_chart(
+          plot_data = filtered_microsim_data())
+      
+    } else {
+      hc <- create_pov_bar_chart(filtered_microsim_data(),
                          xaxis_col = "Income",
-                         yaxis_col = "Post-reform") %>% 
-          hc_exporting(
-            filename = paste0("Poverty - ", first(filtered_microsim_data()$Parameter), " - ",
-                              first(filtered_microsim_data()$Area), " - ",
-                              first(filtered_microsim_data()$`Poverty line`)),
-            chartOptions = list(
-              title = list(text = chart_title),
-              subtitle = list(
-                text = paste0(
-                  "Area: ", input$areas_filter,
-                  "<br>",
-                  "Poverty line: ",  input$pov_line
-                ),
-                useHTML = TRUE  
-              ))
-            )
-
+                         yaxis_col = "Post-reform") 
+    }
+      
+      hc %>% 
+        hc_exporting(
+          filename = paste0("Poverty - ", first(filtered_microsim_data()$Parameter), " - ",
+                            first(filtered_microsim_data()$Area), " - ",
+                            first(filtered_microsim_data()$`Poverty line`)),
+          chartOptions = list(
+            title = list(text = chart_title),
+            subtitle = list(
+              text = paste0(
+                "Area: ", input$areas_filter,
+                "<br>",
+                "Poverty line: ",  input$pov_line
+              ),
+              useHTML = TRUE  
+            ))
+        )
     })
 
 

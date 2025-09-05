@@ -3,19 +3,23 @@
 build_vat_table_ui <- function(df, id_prefix = "vat_post_") {
   # Build body rows with numeric inputs 0–100 (step 0.1)
   rows <- lapply(seq_len(nrow(df)), function(i) {
-    code <- df$code[i]
-    nm   <- df$itemcode[i]
+    group <- df$group[i] %>% as.character()
+    code <- df$code[i] %>% as.character()
+    nm   <- df$item[i]
     pre  <- df$pre_rate[i]
     
+    group_id <- str_replace_all(group, "[^[:alnum:]]", "")
+    
     tags$tr(
+      tags$td(group),
       tags$td(code),
       tags$td(nm),
-      tags$td(sprintf("%.1f", pre*100)),
+      tags$td(sprintf("%.1f", pre)),
       tags$td(
         numericInput(
-          inputId = paste0(id_prefix, code),
+          inputId = paste0(id_prefix, group_id, code),
           label   = NULL,
-          value   = round(pre*100,2),    # default to pre-reform rate
+          value   = pre,    # default to pre-reform rate
           min     = 0,
           max     = 100,
           step    = 0.1,
@@ -29,6 +33,7 @@ build_vat_table_ui <- function(df, id_prefix = "vat_post_") {
     class = "table table-borderless",
     tags$thead(
       tags$tr(
+        tags$th("Group"),
         tags$th("Code"),
         tags$th("Item"),
         tags$th("Pre-reform VAT (%)"),
@@ -44,19 +49,23 @@ build_vat_table_ui <- function(df, id_prefix = "vat_post_") {
 build_excise_table_ui <- function(df, id_prefix = "excise_post_") {
   # Build body rows with numeric inputs 0–100 (step 0.1)
   rows <- lapply(seq_len(nrow(df)), function(i) {
-    code <- df$code[i]
-    nm   <- df$itemcode[i]
+    group <- df$group[i] %>% as.character()
+    code <- df$code[i] %>% as.character()
+    nm   <- df$item[i]
     pre  <- df$pre_rate[i]
     
+    group_id <- str_replace_all(group, "[^[:alnum:]]", "")
+    
     tags$tr(
+      tags$td(group),
       tags$td(code),
       tags$td(nm),
-      tags$td(sprintf("%.1f", pre*100)),
+      tags$td(sprintf("%.1f", pre)),
       tags$td(
         numericInput(
-          inputId = paste0(id_prefix, code),
+          inputId = paste0(id_prefix, group_id, code),
           label   = NULL,
-          value   = round(pre*100,2),   # default to pre-reform rate
+          value   = pre,   # default to pre-reform rate
           min     = 0,
           max     = 1000,
           step    = 0.1,
@@ -65,11 +74,12 @@ build_excise_table_ui <- function(df, id_prefix = "excise_post_") {
       )
     )
   })
-  
+
   tags$table(
     class = "table table-borderless",
     tags$thead(
       tags$tr(
+        tags$th("Group"),
         tags$th("Code"),
         tags$th("Item"),
         tags$th("Pre-reform excise rate (%)"),
@@ -109,8 +119,8 @@ build_dct_gov_table_ui <- function(df, id_prefix = "dct_gov_hh_post_") {
     tags$thead(
       tags$tr(
         tags$th("Decile (Pre-reform)"),
-        tags$th("Direct cash — mean (Pre-reform)"),
-        tags$th("Direct cash — median (Pre-reform)"),
+        tags$th("Mean (Pre-reform)"),
+        tags$th("Median (Pre-reform)"),
         tags$th("Add to Pre-reform in MWK (Post-reform)")
       )
     ),
@@ -146,8 +156,8 @@ build_fips_gov_table_ui <- function(df, id_prefix = "dct_fips_hh_post_") {
     tags$thead(
       tags$tr(
         tags$th("Decile (Pre-reform)"),
-        tags$th("FIPS — mean (Pre-reform)"),
-        tags$th("FIPS — mean (Post-reform)"),
+        tags$th("Mean (Pre-reform)"),
+        tags$th("Median (Pre-reform)"),
         tags$th("Add to Pre-reform in MWK (Post-reform)")
       )
     ),
@@ -195,11 +205,46 @@ build_nearcash_table_ui <- function(df, var_key, program_label, id_prefix) {
     tags$thead(
       tags$tr(
         tags$th("Decile (Pre-reform)"),
-        tags$th(paste0(program_label, " — mean (Pre-reform)")),
-        tags$th(paste0(program_label, " — median (Pre-reform)")),
+        tags$th(paste0("Mean (Pre-reform)")),
+        tags$th(paste0("Median (Pre-reform)")),
         tags$th("Add to Pre-reform in MWK (Post-reform)")
       )
     ),
     tags$tbody(do.call(tagList, rows))
+  )
+}
+
+disclaimer_modal <- function() {
+  modalDialog(
+    title = tagList(
+      # Logos
+      tags$img(
+        src = "WorldBank_Logo_optimized.png",  # or "world_bank_logo.png" if you prefer
+        height = "28", style = "vertical-align: middle; margin-right: 8px;"
+      ),
+      tags$img(
+        src = "malawi_flag.png",
+        height = "22",
+        style = "vertical-align: middle; margin-right: 8px; border-radius: 3px;"
+      ),
+      # Title text
+      tags$span("The World Bank in Malawi", class = "fw-bold")
+    ),
+    easyClose = FALSE, size = "m", fade = TRUE,
+    tagList(
+      p(
+        "This microsimulation tool is an ongoing prototype and is provided for ",
+        strong("illustration and training purposes only"), "."
+      ),
+      p(
+        "It does ", strong("not"), " represent the views of the World Bank Group or its affiliates, ",
+        "and should ", strong("not be used to design, adopt, or implement policy"), "."
+      ),
+      p("By proceeding, you acknowledge these limitations.")
+    ),
+    footer = tagList(
+      actionButton("disclaimer_decline", "Exit", class = "btn btn-outline-secondary"),
+      actionButton("disclaimer_accept", "I understand and agree", class = "btn btn-primary")
+    )
   )
 }

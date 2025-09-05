@@ -9,8 +9,8 @@ HH_MOD_N1 <- read_dta(paste0(here(), hh_data_path, "/HH_MOD_N1.dta"))
 HH_MOD_N2 <- read_dta(paste0(here(), hh_data_path, "/HH_MOD_N2.dta"))
 ################### Household characteristics ##################################
 basicvars_ihs5 <- read_dta(paste0(here(), hh_data_path, "/basicvars_ihs5.dta"))
-indivivars_ihs5 <- read_dta(paste0(here(), data_folder,"/Household Surveys/IHS5 2019-20/Intermediate/indivivars_ihs5.dta"))
-yd <- read_dta(paste0(here(), data_folder,"/Output/yd.dta"))
+indivivars_ihs5 <- read_dta(paste0(here(), data_folder,"/household_surveys/ihs5_2019_20/intermediate/indivivars_ihs5.dta"))
+yd <- read_dta(paste0(here(), data_folder,"/output/yd.dta"))
 
 ################################################################################
 ######### PAYE TAX PRE-REFORM ##################################################

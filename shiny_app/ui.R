@@ -88,7 +88,7 @@ page_navbar(
                    value = tags$span("70.1%", class = "fw-bold text-primary"),
                    showcase = bs_icon("exclamation-triangle-fill", fill = "primary"),
                    theme = value_box_theme(bg = "#e9f2f3", fg = "#006D77"),
-                   p("Roughly 70% of Malawians lived on less than US$2.15 (2017 PPP) per day per capita.")
+                   p("Roughly 70% of Malawians lived on less than USD 2.15 (2017 PPP) per day per capita.")
                  )
           ),
           
@@ -259,13 +259,13 @@ page_navbar(
                           " share of the population below the national poverty line defined by the minimum food basket (2,215 calories) or 454 MWK per day per capita.",
                           "In 2019 it was about 50.7%."),
                   tags$li(strong("Extreme poverty (international poverty line):"),
-                          " percentage living on less than 656.7 MWK (2019) or US$2.15 (2017 PPP) per day per capita. About 70% of Malawians fell below this threshold in 2019."),
+                          " percentage living on less than 656.7 MWK (2019) or USD 2.15 (2017 PPP) per day per capita. About 70% of Malawians fell below this threshold in 2019."),
                   tags$li(strong("Gini index:"),
                           " measures inequality on a 0–1 scale; 0.39 indicates moderate inequality."),
                   tags$li(strong("90/10 ratio:"),
                           " ratio of consumption or income of the richest 10% to that of the poorest 10%; around 8.6 in 2019."),
                   tags$li(strong("Urban vs rural poverty:"),
-                          " under the 656.7 MWK (2019) or US$2.15 (2017 PPP) per day per capita, about 30% of urban dwellers and 77% of rural residents were poor in 2019."),
+                          " under the 656.7 MWK (2019) or USD 2.15 (2017 PPP) per day per capita, about 30% of urban dwellers and 77% of rural residents were poor in 2019."),
                   tags$li(strong("Dependency ratio:"),
                           " number of children (0–14) and older persons (65+) per working‑age adult (15–64); about 1.2 in 2019."),
                   tags$li(strong("Population size:"),
@@ -331,7 +331,7 @@ page_navbar(
         
         navset_pill_list(
           id = "sub_tabs_input_paye",
-          widths = c(2, 10),
+          widths = c(3, 9),
           nav_panel(title = "PAYE Income Tax", 
                     # Table-style input form
                     card(
@@ -582,61 +582,72 @@ page_navbar(
 
                 navset_pill_list(
                   id = "sub_tabs_input_indirect",
-                  widths = c(2, 10),
-                  nav_panel(title = "VAT tax",  value = "vat_tax", 
+                  widths = c(3, 9),
+                  nav_panel(title = "VAT Tax",  value = "vat_tax", 
                             card(
                               full_screen = FALSE,
                               fill = TRUE,
                               card_header(
                                 bs_icon("receipt", size = "3em"),
-                                span("VAT Input", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
+                                span("VAT Tax", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
                                 class = "info-box-header"
                               ),
                               
                               p(
                                 "Specify item-level VAR tax rates. These are pre-filled with official policy rates but can be adjusted for simulation scenarios.",
-                                tags$a("More info", href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm", target = "_blank")
+                                tags$a(" Learn more in the CEQ methodology guide.",
+                                       href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
+                                       target = "_blank"),
+                                "."
                               ),
                               
                               # >>> UI-only table (no server render) <<<
                               build_vat_table_ui(vat_catalog)
                             )
                   ),
-                  nav_panel(title = "Excise", value = "excise", 
+                  nav_panel(title = "Excise Tax", value = "excise", 
                             card(
                               full_screen = FALSE,
                               fill = TRUE,
                               card_header(
                                 bs_icon("percent", size = "3em"),
-                                span("Excise Tax by Item", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
+                                span("Excise Tax", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
                                 class = "info-box-header"
                               ),
                               p(
-                                "Specify item-level excise tax rates. These are pre-filled with official policy rates but can be adjusted for simulation scenarios."
+                                "Specify item-level excise tax rates. These are pre-filled with official policy rates but can be adjusted for simulation scenarios.",
+                                tags$a(" Learn more in the CEQ methodology guide.",
+                                       href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
+                                       target = "_blank"),
+                                "."
                               ),
                               
-                              build_excise_table_ui(excise_catalog)
+                           build_excise_table_ui(excise_catalog)
                                       )
                   ),
                   nav_panel(title = "Help",
                             value = "Help",help_indirect_tax_tab)
                 )
         ),
-      nav_panel(title = "Direct transferts", value = "direct_transferts", 
+      nav_panel(title = "Transfers", value = "direct_transfers", 
                 navset_pill_list(
                   id = "sub_tabs_direct_cash",
-                  widths = c(2, 10),
+                  widths = c(3, 9),
                   nav_panel(title = "Direct cash transfers",  value = "direct_cash_transfers", 
                         card(
                               full_screen = FALSE,
                               fill = TRUE,
                               card_header(
-                                bs_icon("info-circle-fill", size = "3em"),
-                                span("Direct transferts Input Form", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
+                                bs_icon("cash-stack", size = "3em"),
+                                span("Direct cash transferts", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
                                 class = "info-box-header"
                               ),
                               p(
-                                "This tab presents the structure of the direct transfert system used in the microsimulation model: Government direct cash transfer and Farm Input Subsidy Programme."
+                                "This tab presents the structure of the direct transfert system used in the microsimulation model: Government direct cash transfer and Farm Input Subsidy Programme. All values are expressed in MWK.",
+                                tags$a(" Learn more in the CEQ methodology guide.",
+                                       href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
+                                       target = "_blank"),
+                                "."
                               ),
                               # >>> UI-only table (no server render) <<<
                               h4(class = "fw-bold text-primary", "Government direct cash transfer"),
@@ -649,18 +660,22 @@ page_navbar(
                             
                   ), 
                   nav_panel(
-                    title = "Near-cash transfers ",
+                    title = "Near-cash transfers",
                     value = "near_cash_transfers",
                     card(
                       full_screen = FALSE,
                       fill = TRUE,
                       card_header(
-                        bs_icon("info-circle-fill", size = "3em"),
-                        span("Near-cash transfers Input Form", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
+                        bs_icon("basket2", size = "3em"),
+                        span("Near-cash transfers", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
                         class = "info-box-header"
                       ),
                       p(
-                        "Adjust post-reform average amounts by pre-reform decile for each near-cash program."
+                        "Adjust post-reform average amounts by pre-reform decile for each near-cash program. All values are expressed in MWK.",
+                        tags$a(" Learn more in the CEQ methodology guide.",
+                               href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
+                               target = "_blank"),
+                        "."
                       ),
                       
                       # --- Free Maize transfer ---
@@ -748,123 +763,144 @@ page_navbar(
                 )
                 
                 ),
-      # nav_panel(title = "Subsidies", value = "subsidies", 
-      #           navset_pill_list(
-      #             id = "sub_tabs_subsidies",
-      #             widths = c(2, 10),
-      #             nav_panel(
-      #             title = "Electricity",
-      #             value = "electricity",
-      #             bslib::card(
-      #               full_screen = FALSE,
-      #               fill = TRUE,
-      #               bslib::card_header(
-      #                 bs_icon("lightning-charge", size = "3em"),
-      #                 span("Electricity tariff", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
-      #                 class = "info-box-header"
-      #               ),
-      #               p("Edit the subsidized tariff and block parameters used to compute the electricity subsidy. The electricity rate without subsidies is 50 MWK/kWh."),
-      #               fluidRow(
-      #                 column(
-      #                   3,
-      #                   numericInput(
-      #                     inputId = "elec_rate_subsidized",
-      #                     label   = "Subsidized rate (MWK/kWh)",
-      #                     value   = 47.5,   # from your text
-      #                     min     = 0, max = 50, step = 0.01, width = "100%"
-      #                   )
-      #                 ),
-      #                 column(
-      #                   3,
-      #                   numericInput(
-      #                     inputId = "elec_block1_kwh",
-      #                     label   = "Maximum subsidized consumption (kWh/month)",
-      #                     value   = 50,     # first-block size
-      #                     min     = 0, max = 1000, step = 1, width = "100%"
-      #                   )
-      #                 ),
-      #                 column(
-      #                   3,
-      #                   numericInput(
-      #                     inputId = "elec_rate_block2",
-      #                     label   = "Block-2 rate (MWK/kWh)",
-      #                     value   = 67.25,  # from your text
-      #                     min     = 0, max = 1000, step = 0.01, width = "100%"
-      #                   )
-      #                 )
-      #               )
-      #             )
-      #           ),
-      #           nav_panel(
-      #             title = "Fuel subsidy",
-      #             value = "fuel_sub",
-      #             bslib::card(
-      #               full_screen = FALSE,
-      #               fill = TRUE,
-      #               bslib::card_header(
-      #                 bs_icon("fuel-pump", size = "3em"),
-      #                 span("Fuel subsidy — national envelope", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
-      #                 class = "info-box-header"
-      #               ),
-      #               p("Allocate a national fuel subsidy pot (as % of GDP) across households in proportion to annual fuel spending (domestic + enterprise)."),
-      #               fluidRow(
-      #                 column(
-      #                   4,
-      #                   numericInput(
-      #                     inputId = "fuel_subsidy_pct_gdp",
-      #                     label   = "Fuel subsidy (% of GDP)",
-      #                     value   = 0.243,     # 0.243% of GDP
-      #                     min     = 0, max = 1, step = 0.001, width = "100%"
-      #                   )
-      #                 )
-      #               )
-      #               )
-      #             )
-      #           )
-       #         ),
+      nav_panel(title = "Subsidies", value = "subsidies",
+                navset_pill_list(
+                  id = "sub_tabs_subsidies",
+                  widths = c(3, 9),
+                  nav_panel(
+                  title = "Electricity subsidy",
+                  value = "electricity",
+                  bslib::card(
+                    full_screen = FALSE,
+                    fill = TRUE,
+                    bslib::card_header(
+                      bs_icon("lightning-charge", size = "3em"),
+                      span("Electricity subsidy", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
+                      class = "info-box-header"
+                    ),
+                    p("Edit the subsidized electricity and block parameters used to compute the electricity subsidy section. The electricity rate without subsidies is 67.25 MWK/kWh.",
+                      tags$a(" Learn more in the CEQ methodology guide.",
+                             href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
+                             target = "_blank"),
+                      "."),
+                    
+                    tags$table(
+                      class = "table table-borderless",
+                      tags$thead(
+                        tags$tr(
+                          tags$th("Parameter"),
+                          tags$th("Pre-reform"),
+                          tags$th("Post-reform")
+                        )
+                      ),
+                      tags$tbody(
+                        tags$tr(
+                          tags$td("Subsidized rate (MWK/kWh)"),
+                          tags$td("47.5"),
+                          tags$td(
+                            numericInput(
+                              inputId = "elec_rate_subsidized",
+                              label   = NULL,
+                              value   = 47.5,
+                              min     = 0, max = 96, step = 0.01, width = "110px"
+                            )
+                          )
+                        ),
+                        tags$tr(
+                          tags$td("Maximum subsidized consumption (kWh/month)"),
+                          tags$td("50"),
+                          tags$td(
+                            numericInput(
+                              inputId = "elec_block1_kwh",
+                              label   = NULL,
+                              value   = 50,
+                              min     = 0, max = 1000, step = 1, width = "110px"
+                            )
+                          )
+                        ),
+                        tags$tr(
+                          tags$td("Electricity rate without subsidy (MWK/kWh)"),
+                          tags$td("67.25"),
+                          tags$td(
+                            numericInput(
+                              inputId = "elec_rate_block2",
+                              label   = NULL,
+                              value   = 67.25,
+                              min     = 0, max = 96, step = 0.01, width = "110px"
+                            )
+                          )
+                        ),
+                        tags$tr(
+                          tags$td("Share of subsidy for firms (% of consumption)"),
+                          tags$td("15"),
+                          tags$td(
+                            numericInput(
+                              inputId = "shr_sub_firm",
+                              label   = NULL,
+                              value   = 15,
+                              min     = 0, max = 100, step = 0.01, width = "110px"
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                ),
+                nav_panel(
+                  title = "Fuel subsidy",
+                  value = "fuel_sub",
+                  bslib::card(
+                    full_screen = FALSE,
+                    fill = TRUE,
+                    bslib::card_header(
+                      bs_icon("fuel-pump", size = "3em"),
+                      span("Fuel subsidy", style = "font-size: 1.8em; vertical-align: middle; margin-left: 10px;"),
+                      class = "info-box-header"
+                    ),
+                    p("Allocate a national fuel subsidy pot (as a percentage of GDP) to households and enterprises in proportion to their respective annual fuel spending. The total subsidies provided amount to 207 billion MWK.",
+                      tags$a(" Learn more in the CEQ methodology guide.",
+                             href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
+                             target = "_blank"),
+                      "."
+                             ),
+                    tags$table(
+                      class = "table table-borderless",
+                      tags$thead(
+                        tags$tr(
+                          tags$th("Parameter"),
+                          tags$th("Pre-reform"),
+                          tags$th("Post-reform")
+                        )
+                      ),
+                      tags$tbody(
+                        tags$tr(
+                          tags$td("Fuel subsidy (% of GDP)"),
+                          tags$td("0.243"),
+                          tags$td(
+                            numericInput(
+                              inputId = "fuel_subsidy_pct_gdp",
+                              label   = NULL,
+                              value   = 0.243,     # 0.243% of GDP
+                              min     = 0, max = 1, step = 0.001, width = "100%"
+                            )
+                          )
+                        )
+                        )
+                      )
+                    )
+                  ),
+                nav_panel(title = "Help",value = "Help",help_subsidies_tab)
+                )
+              ),
       nav_spacer(), # add space to navbar 
       # In your UI, replace the loadingButton with:
-
       nav_item(
         conditionalPanel(
-          condition = paste(
-            "input.tax_rate_lowest != 0",
-            "|| input.tax_rate_second != 25",
-            "|| input.tax_rate_middle != 30",
-            "|| input.tax_rate_top != 35",
-            "|| input.remove_agriculture_exemption != 'No'",
-            "|| input.remove_electricity_exemption != 'No'",
-            paste0("|| input.corp_tax_", 0:18, " != ", 
-                   c(15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 30, 15, 15, 15, 15, 15, 15, 15), 
-                   collapse = " "),
-            # Excise tax conditions (ordered by excise rate priority)
-            "|| input.vat_rate != 16.5",   # For VAT
-            "|| input.excise_item_914 != 250",   # Wine or commercial liquor
-            "|| input.excise_item_911 != 250",   # Bottled / canned beer
-            "|| input.excise_item_913 != 40",    # Traditional beer (masese)
-            "|| input.excise_item_330 != 20",    # Cooking utensils
-            "|| input.excise_item_5801 != 20",   # Radio with flash drive/micro CD
-            "|| input.excise_item_211 != 10",    # Diesel
-            "|| input.excise_item_813 != 10",    # Tomato sauce (bottle)
-            "|| input.excise_item_333 != 10",    # Umbrella
-            "|| input.excise_item_909 != 5",     # Bottled water
-            "|| input.excise_item_519 != 5",     # Mini-bus
-            "|| input.excise_item_517 != 5",     # Motorcycle/scooter
-            "|| input.excise_item_611 != 5",     # Tractor
-            # Items with zero excise rates
-            "|| input.excise_item_506 != 0",     # Pork
-            "|| input.excise_item_507 != 0",     # Mutton
-            "|| input.excise_item_106 != 0",     # Rice
-            "|| input.excise_item_111 != 0",     # Bread
-            "|| input.excise_item_101 != 0",     # Maize ufa mgaiwa (normal flour)
-            "|| input.excise_item_801 != 0",     # Sugar
-            "|| input.excise_item_803 != 0",     # Cooking oil
-            "|| input.excise_item_810 != 0",     # Salt
-            sep = " "
-          ),
+          condition = "output.show_sim_btn",   # toggled from server
           loadingButton("simulate_button", label = "Simulate")
         )
       )
+      # nav_item(
     ), # end navset_pill_list
     
     # ---- World Bank logo + About section ----
@@ -882,7 +918,11 @@ page_navbar(
         div(
           style = "font-size: 1em; padding-top: 10px; text-align: left;",
           p(strong("About this tool:")),
-          p("This CEQ microsimulation tool was developed by the Poverty and Equity Global Practice of the World Bank on the Eastern and Southern Africa region. It supports policy analysis to help governments understand the distributional impact of fiscal policies and strengthen equity-driven reforms."),
+          p("This CEQ microsimulation tool was developed by the Poverty and Equity Global Practice of the World Bank on the Eastern and Southern Africa region. It supports policy analysis to help governments understand the distributional impact of fiscal policies and strengthen equity-driven reforms.",
+            tags$a(" Learn more in the CEQ methodology guide.",
+                   href = "https://tulane.app.box.com/s/l72r8kez5b1r38fibghgyb439i6849pm/file/1696511034124",
+                   target = "_blank"),
+            "."),
           p("The Poverty Team works closely with national statistical offices and ministries of finance to promote evidence-based decision-making.")
         )
       )
@@ -899,15 +939,15 @@ page_navbar(
                 # Summary
                  nav_panel(title = "Summary", value = "summary", sum_mod_ui("sim_summary")),
                 # --- Direct tax tab ---
-                nav_panel(title = "Poverty Indicators by Income Concept", value = "poverty", pov_mod_ui("sim_poverty")),
+                nav_panel(title = "Poverty Indicators", value = "poverty", pov_mod_ui("sim_poverty")),
                 # --- Geospatial analysis tab ---
-                nav_panel(title = "Geospatial Poverty Analysis", value = "geospatial", geo_pov_mod_ui("sim_geo_poverty")),
+                nav_panel(title = "Geospatial Poverty", value = "geospatial", geo_pov_mod_ui("sim_geo_poverty")),
                 # --- Inequality analysis tab ---
                 nav_panel(title = "Inequality", value = "inequality", ineq_mod_ui("sim_inequality")),
                 # --- Net cash position tabs ---
                 #nav_panel(title = "Net cash position", value = "net_cash_position", "Net cash position"),
                 # --- Incidence tabs ---
-                nav_panel(title = "Incidence", value = "incidence", incid_mod_ui("sim_incidence"))
+                nav_panel(title = "Incidences", value = "incidence", incid_mod_ui("sim_incidence"))
                 
          ) # end navset_pill_list
   ), # end nav_panel "Results choice"
@@ -936,7 +976,7 @@ page_navbar(
         alt = "World Bank Logo"
       )
     )
-  ),
+  )
   ########################################.
   # Menu with additional tabs  -------
   ########################################.
@@ -944,20 +984,20 @@ page_navbar(
   # this section creates a drop-down menu containing 3 tabs which provide further information on ScotPHO
   # i.e. an about scotpho tab, an indicator definitions tab and an about profiles tab 
   
-  nav_menu(
-    title = "More information",
-    align = "right", # ensures tab names inside the menu are not cut-off
-    
-    # about scotpho tab
-    nav_panel(title = "About ScotPHO", value = "about_scotpho", "about_scotpho_text"),
-    
-    
-    # indicator definitions tab
-    nav_panel(title = "Indicator Definitions",
-              value = "definitions",
-              "definitions_tab_UI(metadata)"
-    )
-  ) # close nav menu
+  # nav_menu(
+  #   title = "More information",
+  #   align = "right", # ensures tab names inside the menu are not cut-off
+  #   
+  #   # about scotpho tab
+  #   nav_panel(title = "About ScotPHO", value = "about_scotpho", "about_scotpho_text"),
+  #   
+  #   
+  #   # indicator definitions tab
+  #   nav_panel(title = "Indicator Definitions",
+  #             value = "definitions",
+  #             "definitions_tab_UI(metadata)"
+  #   )
+  # ) # close nav menu
   
 ) #close page_navbar
 

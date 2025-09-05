@@ -14,6 +14,25 @@ server <- function(input, output, session) {
     autoInvalidate()
     cat(".")
   })
+  
+  # Show on first load (keep your existing code if already present)
+  accepted <- reactiveVal(FALSE)
+  observeEvent(TRUE, { showModal(disclaimer_modal()) }, once = TRUE)
+  
+  observeEvent(input$disclaimer_accept, {
+    accepted(TRUE)
+    removeModal()
+  })
+  
+  # If user declines, close the app
+  observeEvent(input$disclaimer_decline, {
+    session$close()
+  })
+  
+  # Gate the simulate button (as you already do)
+  output$show_sim_btn <- reactive(accepted())
+  outputOptions(output, "show_sim_btn", suspendWhenHidden = FALSE)
+  
 
   # Initial state: Disable the "Results" tab when the app starts
   # This observe runs once on startup.
@@ -53,14 +72,39 @@ server <- function(input, output, session) {
 ################################################################################################   
   
   # Helper to clamp 0–100 and fallback to pre*100 when input is missing
+  # collect_post_vector_percent <- function(df, input, prefix) {
+  # 
+  #   v <- sapply(df$code, function(cd) {
+  #     x <- input[[paste0(prefix, cd)]]
+  #     if (is.null(x) || is.na(x)) df$pre_rate[df$code == cd] * 100 else as.numeric(x)
+  #   }, USE.NAMES = FALSE)
+  #   names(v) <- df$code         # keep codes for debugging
+  #   v
+  # }
+  
   collect_post_vector_percent <- function(df, input, prefix) {
-
-    v <- sapply(df$code, function(cd) {
-      x <- input[[paste0(prefix, cd)]]
-      if (is.null(x) || is.na(x)) df$pre_rate[df$code == cd] * 100 else as.numeric(x)
-    }, USE.NAMES = FALSE)
-    names(v) <- df$code         # keep codes for debugging
-    v
+    stopifnot(all(c("group", "code", "pre_rate") %in% names(df)))
+    
+    out <- vapply(seq_len(nrow(df)), function(i) {
+      grp_raw <- as.character(df$group[i])
+      cd      <- as.character(df$code[i])
+      
+      # same sanitization used in the UI
+      grp_id  <- stringr::str_replace_all(grp_raw, "[^[:alnum:]]", "")
+      
+      input_id <- paste0(prefix, grp_id, cd)
+      val <- input[[input_id]]
+      
+      if (is.null(val) || is.na(val) || val == "") {
+        df$pre_rate[i]          # fallback to pre-reform rate in PERCENT
+      } else {
+        as.numeric(val)               # already a percent from numericInput
+      }
+    }, numeric(1))
+    
+    # Name with group|code to avoid collisions if codes repeat across groups
+    names(out) <- paste0(as.character(df$group), "|", as.character(df$code))
+    out
   }
   
   collect_post_vector_value <- function(df, input, prefix) {
@@ -74,6 +118,7 @@ server <- function(input, output, session) {
   }
 
   ################################################################################################  
+  
   # Create a reactiveVal to hold simulation output
   simulated_pov <- reactiveVal(NULL)
   
@@ -89,10 +134,44 @@ server <- function(input, output, session) {
   # Create a reactiveVal to hold main policy changes 
   simulated_df <- reactiveVal(NULL)
   
+  
+  # Inputs to ignore (tab selectors, etc.) so tab switching doesn't trigger the button
+  ignore_inputs <- c(
+    "nav", "sub_tabs_input", "sub_tabs_input_paye", "sub_tabs_input_indirect",
+    "sub_tabs_direct_cash", "sub_tabs_subsidies", "sub_tabs_results"
+  )
+  
+  # Capture the initial (baseline) values AFTER the UI has rendered
+  defaults <- reactiveVal(NULL)
+  session$onFlushed(function() {
+    isolate({
+      cur <- reactiveValuesToList(input)
+      cur <- cur[setdiff(names(cur), ignore_inputs)]
+      defaults(cur)
+    })
+  }, once = TRUE)
+  
+  # TRUE if any tracked input differs from its initial value
+  has_changes <- reactive({
+    req(defaults())
+    cur <- reactiveValuesToList(input)
+    cur <- cur[setdiff(names(cur), ignore_inputs)]
+    !identical(cur, defaults())
+  })
+  
+  # Expose to the UI for conditionalPanel
+  output$show_sim_btn <- reactive({ has_changes() })
+  outputOptions(output, "show_sim_btn", suspendWhenHidden = FALSE)
+  
+  observe({
+    if (has_changes()) shinyjs::enable("simulate_button") else shinyjs::disable("simulate_button")
+  })
+  
   # Run simulation when button is clicked
   observeEvent(input$simulate_button, {
 
     # read inputs INSIDE the observer
+    
     vat_post_vec    <- collect_post_vector_percent(vat_catalog,    input, "vat_post_")
     excise_post_vec <- collect_post_vector_percent(excise_catalog, input, "excise_post_")
     
@@ -112,8 +191,8 @@ server <- function(input, output, session) {
     # -------------- Subsidies ------------------------------
 
     # clamp/collect already done — now just round to 2 dp
-    vat_post_vec    <- round(vat_post_vec, 2)
-    excise_post_vec <- round(excise_post_vec, 2)
+    # vat_post_vec    <- round(vat_post_vec, 2)
+    # excise_post_vec <- round(excise_post_vec, 2)
     
     dct_gov_hh_post_vec    <- round(dct_gov_hh_post_vec, 2)
     dct_fips_hh_post_vec <- round(dct_fips_hh_post_vec, 2)
@@ -129,24 +208,42 @@ server <- function(input, output, session) {
     # Aggregate poverty estimates
     sim_df <- simulate_main_df(
       # --- Direct taxes (PAYE) ---
-      input$tax_rate_lowest,
-      input$tax_rate_second,
-      input$tax_rate_middle,
-      input$tax_rate_top,
+      tax_rate_lowest = input$tax_rate_lowest,
+      tax_rate_second = input$tax_rate_second,
+      tax_rate_middle = input$tax_rate_middle,
+      tax_rate_top = input$tax_rate_top,
       
       # --- Corporate taxes ---
-      input$corp_tax_1,  input$corp_tax_2,  input$corp_tax_3,  input$corp_tax_4,  input$corp_tax_5,
-      input$corp_tax_6,  input$corp_tax_7,  input$corp_tax_8,  input$corp_tax_9,  input$corp_tax_10,
-      input$corp_tax_11, input$corp_tax_12, input$corp_tax_13, input$corp_tax_14, input$corp_tax_15,
-      input$corp_tax_16, input$corp_tax_17, input$corp_tax_18,
+      corp_tax_1 = input$corp_tax_1,  
+      corp_tax_2 = input$corp_tax_2,  
+      corp_tax_3 = input$corp_tax_3,  
+      corp_tax_4 = input$corp_tax_4,  
+      corp_tax_5 = input$corp_tax_5,
+      corp_tax_6 = input$corp_tax_6,  
+      corp_tax_7 = input$corp_tax_7,  
+      corp_tax_8 = input$corp_tax_8,  
+      corp_tax_9 = input$corp_tax_9,  
+      corp_tax_10 = input$corp_tax_10,
+      corp_tax_11 = input$corp_tax_11, 
+      corp_tax_12 = input$corp_tax_12, 
+      corp_tax_13 = input$corp_tax_13, 
+      corp_tax_14 = input$corp_tax_14, 
+      corp_tax_15 = input$corp_tax_15,
+      corp_tax_16 = input$corp_tax_16, 
+      corp_tax_17 = input$corp_tax_17, 
+      corp_tax_18 = input$corp_tax_18,
       
-      input$remove_agriculture_exemption,
-      input$remove_electricity_exemption,
+      remove_agriculture_exemption = input$remove_agriculture_exemption,
+      remove_electricity_exemption = input$remove_electricity_exemption,
       
       # --- Indirect taxes (vectors by item, in order) ---
-      vat_codes     = vat_catalog$code,
+      vat_group     = as.character(vat_catalog$group),
+      vat_codes     = as.character(vat_catalog$code),
+      vat_name     = as.character(vat_catalog$item),
       vat_post      = vat_post_vec,
-      excise_codes  = excise_catalog$code,
+      excise_group = as.character(excise_catalog$group),
+      excise_codes  = as.character(excise_catalog$code),
+      excise_name  = as.character(excise_catalog$item),
       excise_post   = excise_post_vec,
       
       # --- Subsidies (vectors by decile, in order) ---
@@ -178,17 +275,17 @@ server <- function(input, output, session) {
       dtr_tes_hh          = dtr_tes_hh_post_vec,
       
       dtr_onc_hh_decile   = dtr_onc_hh_catalog$decile,
-      dtr_onc_hh          = dtr_onc_hh_post_vec
+      dtr_onc_hh          = dtr_onc_hh_post_vec,
       
       
-      # # Electricity knobs 
-      # elec_rate_subsidized = input$elec_rate_subsidized,  # MWK/kWh
-      # elec_block1_kwh      = input$elec_block1_kwh,       # kWh/month
-      # elec_rate_block2     = input$elec_rate_block2,      # MWK/kWh
-      # 
-      # # Fuel — national envelope share (% of GDP)
-      # fuel_subsidy_pct_gdp = input$fuel_subsidy_pct_gdp   # percent, e.g., 0.243
-      
+      # Electricity knobs
+      elec_rate_subsidized = input$elec_rate_subsidized,  # MWK/kWh
+      elec_block1_kwh      = input$elec_block1_kwh,       # kWh/month
+      elec_rate_block2     = input$elec_rate_block2,      # MWK/kWh
+      shr_sub_firm = input$shr_sub_firm,
+      # Fuel — national envelope share (% of GDP)
+      fuel_subsidy_pct_gdp = input$fuel_subsidy_pct_gdp   # percent, e.g., 0.243
+
     )
     
     

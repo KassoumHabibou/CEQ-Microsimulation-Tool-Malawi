@@ -1,559 +1,749 @@
-
 ####################################################
 # About Pov chart
 ####################################################
 help_pov_chart_tab <- tagList(
+  # --- What does this show? ---
   tags$div(
     tags$h6("What does the poverty simulation table show?", class = "chart-header"),
-    tags$p("This table summarizes the impact of tax and transfer policies on poverty outcomes across different income concepts 
-            and poverty lines."),
-    tags$p("For each poverty line — such as the National Poverty Line (454 MWK per day), the Lower Income Class Line 
-            (2.15 USD PPP), and the Middle Income Class Line (3.65 USD PPP) — we compute four key poverty indicators:"),
-    tags$ul(
-      tags$li(strong("Poverty Rate:"), " The share of the population living below the poverty line."),
-      tags$li(strong("Number of Poor:"), " The total number of individuals living in poverty."),
-      tags$li(strong("Poverty Gap:"), " The average shortfall (as a percentage of the poverty line) among the poor."),
-      tags$li(strong("Poverty Severity:"), " A weighted measure that gives more importance to those further below the line.")
+    tags$p(
+      "This table summarizes how taxes, transfers, and in-kind services change poverty under different ",
+      strong("income concepts"), " and across multiple ", strong("poverty lines"), "."
     ),
-    tags$p("These indicators are calculated under different income concepts to understand the role of the fiscal system:"),
     tags$ul(
-      tags$li(strong("Market Income:"), " Income before any government intervention (taxes or transfers)."),
-      tags$li(strong("Gross Income:"), " Market income plus direct transfers."),
-      tags$li(strong("Net Market Income:"), " Gross income minus direct taxes."),
-      tags$li(strong("Disposable Income:"), " Net income plus indirect subsidies minus indirect taxes."),
-      tags$li(strong("Consumable Income:"), " Disposable income minus indirect taxes (e.g., VAT, excise)."),
-      tags$li(strong("Final Income:"), " Consumable income plus monetized value of in-kind services (e.g., education, health).")
+      tags$li(strong("Poverty Rate"), ": share of the population below the chosen line."),
+      tags$li(strong("Number of Poor"), ": total individuals under the line."),
+      tags$li(strong("Poverty Gap"), ": average shortfall (as % of the line) among the poor."),
+      tags$li(strong("Poverty Severity"), ": squared-gap measure giving more weight to the poorest.")
+    ),
+    tags$p("Indicators are reported for standard CEQ income concepts:"),
+    tags$ul(
+      tags$li(strong("Market income"), " → before any taxes/transfers."),
+      tags$li(strong("Gross income"), " → market + direct transfers."),
+      tags$li(strong("Net market income"), " → gross − direct taxes."),
+      tags$li(strong("Disposable income"), " → net market ± indirect subsidies/taxes."),
+      tags$li(strong("Consumable income"), " → disposable − indirect taxes on consumption."),
+      tags$li(strong("Final income"), " → consumable + in-kind education/health.")
     )
   ),
+  # --- How are indicators computed? ---
+  tags$div(
+    tags$h6("How are the indicators calculated?", class = "chart-header"),
+    tags$p(
+      "We apply each poverty line (e.g., National line ", code("454 MWK/day"), ", ",
+      "International lines ", code("US$2.15 PPP"), " and ", code("US$3.65 PPP"),
+      ") to the selected income concept and compute the four FGT-style metrics."
+    ),
+    tags$p(
+      "Results are produced for two scenarios: ", strong("Baseline"), " and ",
+      strong("Simulated policy"), " to quantify policy changes."
+    )
+  ),
+  # --- User Interface controls ---
+  tags$div(
+    tags$h6("What can I change in the User Interface?", class = "chart-header"),
+    tags$ul(
+      tags$li(strong("Income concept selector"), ": choose the CEQ concept."),
+      tags$li(strong("Poverty line"), ": national or international thresholds."),
+      tags$li(strong("Scenario"), ": Baseline vs. Simulated policy."),
+      tags$li(strong("Metric"), ": rate, headcount, gap, or severity.")
+    )
+  ),
+  # --- Output variables (data layer) ---
+  tags$div(
+    tags$h6("What variables does the tool create?", class = "chart-header"),
+    tags$ul(
+      tags$li(code("pov_rate_*"), ", ", code("pov_headcount_*"), ", ", code("pov_gap_*"), ", ", code("pov_sev_*"),
+              " for each income concept and scenario; results are available by line and subgroup.")
+    )
+  ),
+  # --- Interpretation ---
   tags$div(
     tags$h6("How should I interpret the table?", class = "chart-header"),
-    tags$p("By comparing results across income concepts, you can assess how taxes, transfers, and in-kind benefits reduce poverty."),
-    tags$p("For example, a lower poverty rate at the disposable income level compared to the market income level indicates 
-            that cash transfers and direct taxes help reduce poverty."),
-    tags$p("Similarly, looking at the change in poverty gap or severity across concepts helps evaluate how deep poverty is and 
-            whether policies are reaching the poorest households."),
-    tags$p("Comparing poverty indicators across the three poverty lines helps understand the effect of policy under different 
-            assumptions about the minimum income needed to escape poverty."),
-    tags$p("To assess the effect of the new policy compared to the baseline, look at the difference in values for each indicator 
-            between the two columns: ",
-           strong("Baseline"), " and ", strong("Simulated Policy"), ". ",
-           "A reduction in the poverty rate, gap, or severity in the simulated scenario signals an improvement in poverty outcomes 
-            due to the reform. Conversely, an increase would indicate a worsening situation. The comparison helps identify 
-            whether the policy reform is pro-poor and which income group or poverty line it benefits most.")
+    tags$ul(
+      tags$li("Lower poverty at ", strong("disposable/final income"), " vs ", strong("market income"),
+              " implies that fiscal policy reduces poverty."),
+      tags$li("Changes in ", strong("gap/severity"), " show whether the poorest benefit the most."),
+      tags$li("Comparing lines (national vs PPP) tests robustness to alternative thresholds."),
+      tags$li("Focus on ", strong("Baseline → Simulated"), " differences to assess reform impact.")
+    )
+  ),
+  # --- Notes & safeguards ---
+  tags$div(
+    tags$h6("Practical notes and safeguards", class = "chart-header"),
+    tags$ul(
+      tags$li("All poverty metrics use survey weights and eqUser Interfacevalently defined income concepts."),
+      tags$li("Estimates may differ from official poverty profiles due to concept and line choices."),
+      tags$li("Small area results can be noisy; prefer broader groupings for inference.")
+    )
+  ),
+  # --- Why it matters ---
+  tags$div(
+    tags$h6("Why are these poverty results important in CEQ analysis?", class = "chart-header"),
+    tags$p(
+      "They reveal whether fiscal policy is poverty-reducing, for whom, and by how much, ",
+      "providing an immediate test of policy progressivity in levels and depth."
+    )
   )
 )
 
-
-
+####################################################
+# Geospatial poverty analysis
+####################################################
 help_geospatial_pov_tab <- tagList(
+  # --- What does this show? ---
   tags$div(
     tags$h6("What does this geospatial analysis show?", class = "chart-header"),
-    tags$p("This section explores how the simulated tax and transfer policy affects poverty outcomes 
-            across regions or districts, allowing for a spatial comparison of policy impacts."),
-    tags$p("Results are disaggregated by:"),
+    tags$p(
+      "A spatial view of poverty under different income concepts, poverty lines, and scenarios ",
+      "to compare impacts across regions/districts."
+    ),
     tags$ul(
-      tags$li(strong("Geographic Unit:"), " Results can be viewed at the region or district level."),
-      tags$li(strong("Income Concept:"), " From market income to final income, showing the cumulative effect of fiscal policy."),
-      tags$li(strong("Poverty Line:"), " Includes the national poverty line (454 MWK/day), lower income (2.15 USD PPP), and middle income (3.65 USD PPP) thresholds."),
-      tags$li(strong("Poverty Metric:"), " Indicators include poverty rate, number of poor, poverty gap, and poverty severity.")
+      tags$li(strong("Geographic unit"), ": region or district."),
+      tags$li(strong("Income concept"), ": from market to final income."),
+      tags$li(strong("Poverty line"), ": national (454 MWK/day) and international (US$2.15, US$3.65 PPP)."),
+      tags$li(strong("Metric"), ": rate, headcount, gap, or severity.")
     )
   ),
+  # --- Tabs usage ---
   tags$div(
     tags$h6("How should I use the three tabs?", class = "chart-header"),
     tags$ul(
-      tags$li(strong("Histogram Tab:"), " Displays bar charts showing the level of a selected poverty indicator 
-              (e.g., poverty rate or number of poor) by region or district. This helps identify where poverty is most or least prevalent."),
-      tags$li(strong("Map Tab:"), " Provides a spatial visualization of the percentage change in a selected indicator due to the simulated policy. 
-              The formula used is: (Pre reform value - Post-reform value) / Pre reform value Positive values reflect a reduction in the parameter (eg. poverty), while negative values indicate a worsening outcome."),
-      tags$li(strong("Data Tab:"), " Shows the underlying data in tabular format, enabling comparisons and filtering across geographic areas, poverty lines, and income concepts.")
+      tags$li(strong("Histogram"), ": absolute levels by area to spot hotspots."),
+      tags$li(strong("Map"), ": percentage change due to the reform, computed as ",
+              code("(Pre − Post) / Pre"), 
+              ". Positive values = reduction; negative = worsening."),
+      tags$li(strong("Data"), ": the underlying table for filtering and export.")
     )
   ),
+  # --- User Interface controls ---
+  tags$div(
+    tags$h6("What can I change in the User Interface?", class = "chart-header"),
+    tags$ul(
+      tags$li(strong("Scenario"), ": Baseline vs Simulated policy."),
+      tags$li(strong("Income concept & line"), ": align with your analysis focus."),
+      tags$li(strong("Metric & color scale"), ": choose level or % change; adjust legend breaks.")
+    )
+  ),
+  # --- Interpretation ---
   tags$div(
     tags$h6("How do I interpret the percentage change on the map?", class = "chart-header"),
-    tags$p("The map colors each region or district according to the percentage change in a selected poverty indicator due to the simulated policy."),
-    tags$p("For example, a 10% reduction in the number of poor in a district means the simulated policy reduced poverty there by 10% compared to the baseline."),
-    tags$p("This visualization helps assess spatial equity — whether the policy benefits are equally distributed across the country or concentrated in certain areas.")
+    tags$p(
+      "Colors reflect the policy-induced change in the selected indicator. ",
+      "Darker positive shading implies larger reductions (better outcomes)."
+    ),
+    tags$p("Use side-by-side concepts to track whether gains persist after taxes and in-kind services.")
   ),
+  # --- Why it matters ---
   tags$div(
-    tags$h6("Learn more about CEQ analysis", class = "chart-header"),
-    tags$p(HTML("This tool follows the <a href='https://commitmenttoequity.org' target='_blank'>Commitment to Equity (CEQ) methodology</a>, 
-                which evaluates how taxes, transfers, and subsidies impact poverty and inequality."))
+    tags$h6("Why are spatial views useful in CEQ analysis?", class = "chart-header"),
+    tags$p(
+      "They test spatial eqUser Interfacety—whether benefits are concentrated or broad—",
+      "and inform regionally targeted policy design."
+    )
   )
 )
 
-
-
+####################################################
+# Direct taxes
+####################################################
 help_direct_tax_tab <- tagList(
+  # --- What are direct taxes? ---
   tags$div(
     tags$h6("What are direct taxes?", class = "chart-header"),
-    tags$p("Direct taxes are levied directly on individuals or businesses based on their income or profits. 
-            In contrast to indirect taxes (like VAT), direct taxes are paid directly to the government and are 
-            generally progressive — those with higher incomes pay a higher share."),
-    tags$p("In this simulation tool, we include two main types of direct taxes:")
+    tags$p(
+      "Levies paid directly by individuals or firms on income or profits. ",
+      "In this tool we model:"
+    ),
+    tags$ul(
+      tags$li(strong("PAYE"), ": personal income tax on formal wage earnings."),
+      tags$li(strong("Corporate income tax (CIT)"), ": tax on household-enterprise profits (non-agricultural).")
+    )
   ),
-  
-  tags$ul(
-    tags$li(strong("Pay As You Earn (PAYE):"), " a personal income tax applied to formal wage earners."),
-    tags$li(strong("Corporate Income Tax:"), " a tax on profits earned by non-agricultural household businesses.")
-  ),
-  
+  # --- How are they estimated? ---
   tags$div(
     tags$h6("How are direct taxes estimated?", class = "chart-header"),
-    tags$p("The estimation of direct taxes uses detailed income and business data from the 2019/2020 Malawi IHS survey."),
-    tags$p("For PAYE, the model identifies individuals with formal paid employment and applies the official tax brackets:"),
-    tags$ul(
-      tags$li("0% for annual income ≤ MWK 1.8 million"),
-      tags$li("25% for income between MWK 1.8 – 6 million"),
-      tags$li("30% for income between MWK 6 – 30.6 million"),
-      tags$li("35% for income > MWK 30.6 million")
+    tags$p(
+      "We use IHS 2019/20 microdata. For PAYE, identified formal employees are taxed using statutory brackets: ",
+      code("0% ≤ 1.8m; 25%: 1.8–6m; 30%: 6–30.6m; 35%: >30.6m"), "."
     ),
-    tags$p("For Corporate Tax, household business profits are taxed based on the business type and activity sector, using statutory rates 
-            (e.g., 15% standard, 30% for mining and formal firms, and 0% for priority sectors like agriculture)."),
-    tags$p("All tax liabilities are calculated at the individual or business level and aggregated to the household level for analysis.")
+    tags$p(
+      "For CIT, reported annual net profits from household businesses are taxed by sector/type, ",
+      "with statutory rates (e.g., ", code("15%"), " standard; ", code("30%"), " for mining/formal; ",
+      code("0%"), " for priority sectors meeting criteria)."
+    ),
+    tags$p("Individual/business liabilities are aggregated to the household for incidence.")
   ),
-  
+  # --- User Interface controls ---
   tags$div(
-    tags$h6("What do the simulation results show?", class = "chart-header"),
-    tags$p("The model shows that direct taxes in Malawi are highly progressive — concentrated among the wealthiest households."),
-    tags$p("Under Scenario 3 (realistic estimation):"),
+    tags$h6("What can I change in the User Interface?", class = "chart-header"),
     tags$ul(
-      tags$li("Only households in deciles 6 through 10 pay PAYE, with decile 10 alone contributing over 92% of the total."),
-      tags$li("Corporate tax liability is even more concentrated, with decile 10 responsible for over 50% of the total."),
-      tags$li("The poorest half of the population (deciles 1–5) pays almost no direct tax, reflecting their low or informal earnings.")
-    ),
-    tags$p("Compared to official records, the model underestimates total revenue — especially for corporate tax — due to survey limitations 
-            (e.g., underreporting and exclusion of large firms). Still, it captures the distributional effects of the tax system accurately.")
+      tags$li(strong("PAYE brackets"), ": numeric inputs for post-reform rates."),
+      tags$li(strong("CIT sector rates"), ": inputs ", code("corp_tax_*"), " per sector."),
+      tags$li(strong("Policy toggles"), ": remove sector exemptions (e.g., agriculture/electricity).")
+    )
   ),
-  
+  # --- Output variables ---
+  tags$div(
+    tags$h6("What variables does the tool create?", class = "chart-header"),
+    tags$ul(
+      tags$li(code("p_tax, p_tax_m, pp_tax"), ": individual PAYE (annual/monthly/share)."),
+      tags$li(code("dtx_payt_hh"), ": household CIT liability."),
+      tags$li(code("i_ptax, i_dtx_payt_hh"), ": incidence flags.")
+    )
+  ),
+  # --- Interpretation ---
+  tags$div(
+    tags$h6("How should I interpret the results?", class = "chart-header"),
+    tags$ul(
+      tags$li("PAYE and CIT liabilities concentrate in upper deciles → progressive burden."),
+      tags$li("Compare ", strong("Pre vs Post"), " to see who pays more/less under reform."),
+      tags$li("Survey undercoverage of large formal firms implies lower simulated CIT totals than admin data.")
+    )
+  ),
+  # --- Notes & safeguards ---
+  tags$div(
+    tags$h6("Practical notes and safeguards", class = "chart-header"),
+    tags$ul(
+      tags$li("Top incomes may be under-reported; consider sensitivity checks."),
+      tags$li("Winsorization/outlier handling affects bracket allocations."),
+      tags$li("Sector mapping for CIT should be reviewed if custom codes are used.")
+    )
+  ),
+  # --- Why it matters ---
   tags$div(
     tags$h6("Why are direct taxes important in CEQ analysis?", class = "chart-header"),
-    tags$p("Direct taxes are a key instrument for redistribution. They reduce disposable income but fund the public services and transfers 
-            that can lower poverty and inequality."),
-    tags$p("Understanding who pays taxes — and how much — is essential for evaluating fiscal fairness and aligning tax policy with social goals."),
-    tags$p(HTML("To learn more about the CEQ methodology, visit the <a href='https://commitmenttoequity.org' target='_blank'>CEQ Institute website</a>."))
+    tags$p(
+      "They fund transfers/services and shape progressivity. Modeling them clarifies trade-offs ",
+      "between revenue needs and eqUser Interfacety."
+    )
   )
 )
 
-
+####################################################
+# Indirect taxes (VAT & Excise)
+####################################################
 help_indirect_tax_tab <- tagList(
+  # --- What are indirect taxes? ---
   tags$div(
     tags$h6("What are indirect taxes?", class = "chart-header"),
-    tags$p("Indirect taxes are taxes imposed on the consumption of goods and services rather than directly on income or profits. 
-            Unlike direct taxes, they are not paid directly to the government by individuals, but are embedded in the prices of goods 
-            and collected by sellers. The two main types of indirect taxes analyzed in this tool are:"),
-    tags$ul(
-      tags$li(strong("Value-Added Tax (VAT):"), " A broad-based consumption tax applied at each stage of production and distribution, 
-              ultimately paid by consumers."),
-      tags$li(strong("Excise Taxes:"), " Product-specific taxes applied to items like alcohol, tobacco, fuel, and other selected goods.")
+    tags$p(
+      "Consumption-based levies embedded in prices and collected by sellers. We model:",
+      " ", strong("VAT"), " (broad-based) and ", strong("Excise"), " (item-specific)."
     )
   ),
-  
+  # --- How are they calculated? ---
   tags$div(
     tags$h6("How are VAT and excise taxes calculated?", class = "chart-header"),
-    tags$p("VAT and excise taxes are simulated using detailed household consumption data from the 2019/2020 IHS survey. 
-            Each item purchased by households was matched to official tax rates from the Taxation Amendment Act 2024, and categorized 
-            based on legal treatment (taxable, exempt, or zero-rated)."),
-    tags$p("The simulation incorporates the distinction between consumption in the formal and informal sectors. Since a large share of 
-            consumption in Malawi occurs informally and is not taxed, each household is assigned an ", strong("informality coefficient"), 
-           " that adjusts the taxable share of consumption. This coefficient is based on income decile, expenditure type, and geographic location."),
-    tags$p("Three scenarios are available for estimation:"),
-    tags$ul(
-      tags$li(strong("Scenario 1 (VAT1/Excise1):"), " Assumes all household consumption is formal and fully taxed."),
-      tags$li(strong("Scenario 2 (VAT2/Excise2):"), " Applies taxes to a weighted share of informal consumption, using adjusted coefficients."),
-      tags$li(strong("Scenario 3 (VAT3/Excise3):"), " Applies taxes only to the portion of consumption identified as formal.")
+    tags$p(
+      "Each survey item is matched to statutory VAT/excise (Taxation Amendment Act 2024) and legal treatment ",
+      "(taxable, exempt, zero-rated). We respect the cascade: ",
+      strong("excise first"), ", then VAT on (net + excise)."
     ),
-    tags$p("The estimation process respects the cascading tax structure: excise taxes are applied first, then VAT is calculated on the 
-            sum of the product's value and excise tax. This ensures accurate modeling of the legal tax burden.")
+    tags$p(
+      "By default, the User Interface assumes purchases are formal and fully taxed; advanced scenarios can incorporate informality."
+    )
   ),
-  
+  # --- User Interface controls ---
+  tags$div(
+    tags$h6("What can I change in the User Interface?", class = "chart-header"),
+    tags$ul(
+      tags$li(strong("VAT table"), ": edit post-reform item rates in the interactive table ",
+              "(inputs like ", code("vat_post_*"), ")."),
+      tags$li(strong("Excise table"), ": edit post-reform item rates ",
+              "(inputs like ", code("excise_post_*"), ").")
+    )
+  ),
+  # --- Output variables ---
+  tags$div(
+    tags$h6("What variables does the tool create?", class = "chart-header"),
+    tags$ul(
+      tags$li(code("itx_vatx_hh, itx_excx_hh"), ": household VAT/excise under the baseline assumption."),
+      tags$li(code("itx_vatx_hh2/3, itx_excx_hh2/3"), ": optional scenarios (e.g., informality/formality splits).")
+    )
+  ),
+  # --- Interpretation ---
   tags$div(
     tags$h6("What do the simulation results show?", class = "chart-header"),
-    tags$p("The simulation confirms that assuming all consumption is formal (Scenario 1) significantly overestimates tax revenue. 
-            Scenarios 2 and 3 provide more realistic estimates by accounting for informality."),
-    tags$p("From a distributional perspective, both VAT and excise taxes are progressive in Malawi. The richest households contribute 
-            the majority of indirect tax revenue under Scenario 3:"),
     tags$ul(
-      tags$li("Decile 10 contributes over 40% of total VAT and nearly 58% of total excise revenue."),
-      tags$li("Lower-income households face a lower tax burden due to their limited formal consumption."),
-    ),
-    tags$p("This pattern highlights the importance of considering informality in tax incidence analysis, especially in low-income countries.")
+      tags$li("Assuming all consumption is formal tends to over-estimate revenues."),
+      tags$li("Burden generally rises with income; excise often concentrates in top deciles.")
+    )
   ),
-  
+  # --- Notes & safeguards ---
+  tags$div(
+    tags$h6("Practical notes and safeguards", class = "chart-header"),
+    tags$ul(
+      tags$li("Mind the tax order: excise → VAT (on net+excise)."),
+      tags$li("Exempt/zero-rated items should have VAT = 0 and excise as per law."),
+      tags$li("Item mapping drives results—review any custom code merges.")
+    )
+  ),
+  # --- Why it matters ---
   tags$div(
     tags$h6("Why are indirect taxes important in CEQ analysis?", class = "chart-header"),
-    tags$p("Indirect taxes play a dual role: they are a major source of government revenue and a potential burden on consumers. 
-            Analyzing their incidence helps determine whether fiscal systems are equitable."),
-    tags$p("The CEQ approach ensures that both revenue impacts and household-level effects are captured, 
-            making it possible to assess whether taxation disproportionately affects the poor or supports redistributive goals."),
-    tags$p(HTML("To learn more about the CEQ methodology, visit the <a href='https://commitmenttoequity.org' target='_blank'>CEQ Institute website</a>."))
+    tags$p(
+      "They raise substantial revenue but may burden consumers. Incidence analysis tests whether ",
+      "they align with eqUser Interfacety objectives."
+    )
   )
 )
 
-
+####################################################
+# Inequality measures
+####################################################
 help_ineq_chart_tab <- tagList(
+  # --- What does this show? ---
   tags$div(
     tags$h6("What does this section show?", class = "chart-header"),
-    tags$p("This section presents the level of income inequality in the population, based on different income concepts (e.g., market, disposable, final income). 
-            It allows users to assess how taxes and transfers affect the distribution of income."),
-    tags$p("Three standard inequality measures are reported: the Gini coefficient, the Theil index, and the 90/10 income ratio.")
-  ),
-  
-  tags$div(
-    tags$h6("1. Gini Coefficient", class = "chart-header"),
-    tags$p("The Gini coefficient is a widely used measure of income inequality. It ranges from 0 to 1, where:"),
-    tags$ul(
-      tags$li("0 indicates perfect equality (everyone has the same income)"),
-      tags$li("1 indicates perfect inequality (one person has all the income)")
+    tags$p(
+      "Inequality levels under different income concepts to see how taxes/transfers shape the distribution."
     ),
-    tags$p("In the CEQ analysis, a decrease in the Gini coefficient between market income and disposable income indicates that 
-            taxes and transfers have reduced inequality.")
+    tags$p("Three standard measures are reported: Gini, Theil, and the 90/10 ratio.")
   ),
-  
+  # --- How are they calculated? ---
   tags$div(
-    tags$h6("2. Theil Index", class = "chart-header"),
-    tags$p("The Theil index is an entropy-based measure of inequality that captures income dispersion in a population."),
-    tags$p("It is sensitive to income differences across the distribution, especially among higher-income individuals."),
-    tags$p("A lower Theil value implies a more equal distribution of income. It also allows for decomposition across population subgroups, 
-            making it useful for regional or group-based inequality analysis.")
+    tags$h6("How are the inequality measures calculated?", class = "chart-header"),
+    tags$ul(
+      tags$li(strong("Gini coefficient"), ": 0 (equality) → 1 (max inequality)."),
+      tags$li(strong("Theil index"), ": entropy-based dispersion; decomposable by groups."),
+      tags$li(strong("90/10 ratio"), ": income at P90 divided by income at P10.")
+    ),
+    tags$p("All measures use survey weights and are computed per selected income concept and scenario.")
   ),
-  
+  # --- User Interface controls ---
   tags$div(
-    tags$h6("3. 90/10 Income Ratio", class = "chart-header"),
-    tags$p("This measure compares the income of the richest 10% of the population (90th percentile) to the income of the poorest 10% (10th percentile)."),
-    tags$p("A higher ratio means greater inequality between top and bottom earners."),
-    tags$p("Unlike Gini and Theil, this indicator is intuitive and easy to interpret, highlighting the income gap between the extremes of the distribution.")
+    tags$h6("What can I change in the User Interface?", class = "chart-header"),
+    tags$ul(
+      tags$li(strong("Income concept"), ": market, disposable, final, etc."),
+      tags$li(strong("Scenario"), ": Baseline vs Simulated policy."),
+      tags$li(strong("Measure"), ": Gini, Theil, or 90/10.")
+    )
   ),
-  
+  # --- Interpretation ---
+  tags$div(
+    tags$h6("How should I interpret the results?", class = "chart-header"),
+    tags$ul(
+      tags$li("A lower Gini/Theil at disposable vs market income indicates redistributive impact."),
+      tags$li("A falling 90/10 ratio signals narrowing extremes.")
+    )
+  ),
+  # --- Why it matters ---
   tags$div(
     tags$h6("Why are inequality measures important in CEQ analysis?", class = "chart-header"),
-    tags$p("These indicators help assess whether fiscal policy promotes a fairer distribution of income."),
-    tags$p("By comparing inequality before and after taxes and transfers, users can evaluate whether policies are equitable and aligned with development goals."),
-    tags$p(HTML("To learn more about inequality and fiscal policy, visit the <a href='https://commitmenttoequity.org' target='_blank'>CEQ Institute website</a>."))
+    tags$p(
+      "They reveal whether policy compresses the distribution and by how much, complementing poverty results."
+    )
   )
 )
 
-
+####################################################
+# Direct transfers
+####################################################
 help_direct_transf_tab <- tagList(
+  # --- What are direct transfers? ---
   tags$div(
     tags$h6("What are direct transfers?", class = "chart-header"),
-    tags$p("Direct transfers are government programs that provide cash or in-kind support to households. 
-            These transfers aim to reduce poverty, improve food security, and support vulnerable populations."),
-    tags$p("In this tool, we consider two main types of direct transfers:"),
+    tags$p(
+      "Programs that provide cash or in-kind support. We track:"
+    ),
     tags$ul(
-      tags$li(strong("Direct Cash Transfers:"), " Monetary support programs like the unconditional government cash transfer and the Farm Input Subsidy Programme (FISP)."),
-      tags$li(strong("Near-Cash Transfers:"), " In-kind support with a cash-equivalent value, such as food aid (e.g., free maize) and education scholarships.")
+      tags$li(strong("Direct cash transfers"), ": e.g., government cash and FISP."),
+      tags$li(strong("Near-cash transfers"), ": in-kind or conditional benefits (food aid, scholarships, public works).")
     )
   ),
-  
+  # --- How are they estimated? ---
   tags$div(
     tags$h6("How are direct transfers estimated?", class = "chart-header"),
-    tags$p("Transfer amounts are derived from household survey data and official program details."),
-    tags$p(strong("Direct Cash Transfers"), " include two components:"),
-    tags$ul(
-      tags$li(strong("Unconditional cash transfers:"), " identified in the survey using transfer code 111, summing both cash and in-kind components."),
-      tags$li(strong("FISP (Farm Input Subsidy Programme):"), " based on reported receipt of fertilizer and seed coupons, monetized at MWK 22,000 (fertilizer) and MWK 8,000 (seeds) per coupon. A scaling factor aligns values with the program’s official budget.")
+    tags$p(
+      "Amounts come from IHS transfer modules and program rules. ",
+      strong("Cash"), ": code ", code("111"), " plus monetized FISP coupons ",
+      "(e.g., ", code("22,000 MWK"), " fertilizer; ", code("8,000 MWK"), " seed; scaled to admin totals)."
     ),
-    tags$p("The total cash support is captured by the variable ", code("dct_hh"), ", which aggregates both components."),
-    tags$p(strong("Near-Cash Transfers"), " are estimated using codes for specific forms of assistance (e.g., free maize, scholarships, food-for-work). Each is monetized based on reported quantities and official prices (e.g., MWK 6,000 per 50kg maize bag)."),
-    tags$p("These values are summed into the variable ", code("dtr_nct_hh"), ", representing the household’s total near-cash benefit.")
+    tags$p(
+      strong("Near-cash"), ": free maize, scholarships, work-for-aid, etc., monetized using reported quantities and ",
+      "official prices (e.g., ", code("6,000 MWK/50kg"), " maize)."
+    ),
+    tags$p("Household totals: ", code("dct_hh"), " (cash) and ", code("dtr_nct_hh"), " (near-cash).")
   ),
-  
+  # --- User Interface controls ---
+  tags$div(
+    tags$h6("What can I change in the User Interface?", class = "chart-header"),
+    tags$ul(
+      tags$li(strong("Program add-ons by decile"), ": inputs like ",
+              code("dct_gov_hh_post_*"), " or generic near-cash tables to simulate reforms.")
+    )
+  ),
+  # --- Output variables ---
+  tags$div(
+    tags$h6("What variables does the tool create?", class = "chart-header"),
+    tags$ul(
+      tags$li(code("dct_hh"), ": total direct cash per household."),
+      tags$li(code("dtr_nct_hh"), ": total near-cash per household."),
+      tags$li("Program-specific components (e.g., FISP coupons) available for diagnostics.")
+    )
+  ),
+  # --- Interpretation ---
   tags$div(
     tags$h6("What do the simulation results show?", class = "chart-header"),
-    tags$p("Total direct transfer benefits in Malawi are estimated at MWK 71,365 million:"),
     tags$ul(
-      tags$li("Direct cash transfers account for MWK 45,698 million — with FISP representing more than 75% of that total."),
-      tags$li("Near-cash transfers amount to MWK 25,667 million — primarily from food aid and education support."),
-      tags$li("The poorest households receive the largest share: 60% of total transfers go to the bottom four deciles.")
-    ),
-    tags$p("This highlights the progressive nature of the transfer system — most benefits reach the intended poor and vulnerable groups.")
+      tags$li("Transfers are generally progressive—higher in lower deciles."),
+      tags$li("FISP typically dominates cash support; near-cash is split across food aid and education.")
+    )
   ),
-  
+  # --- Notes & safeguards ---
+  tags$div(
+    tags$h6("Practical notes and safeguards", class = "chart-header"),
+    tags$ul(
+      tags$li("Scaling to administrative totals improves comparability."),
+      tags$li("In-kind valuation depends on local prices; adjust if market conditions change.")
+    )
+  ),
+  # --- Why it matters ---
   tags$div(
     tags$h6("Why are direct transfers important in CEQ analysis?", class = "chart-header"),
-    tags$p("Transfers are a key mechanism for reducing poverty and inequality. By increasing household resources, they improve well-being and help meet basic needs."),
-    tags$p("Analyzing both cash and near-cash transfers allows for a full understanding of the state’s redistributive efforts."),
-    tags$p("The CEQ framework captures how these programs affect income distribution and poverty indicators under different policy scenarios."),
-    tags$p(HTML("To learn more about the CEQ methodology, visit the <a href='https://commitmenttoequity.org' target='_blank'>CEQ Institute website</a>."))
+    tags$p(
+      "They directly raise household resources and can offset regressive elements elsewhere in the system."
+    )
   )
 )
 
 
-####################################################
-# About Relative index of inequality (RII) measure 
-####################################################
-
-
-
-#########################################################
-# About Slope index of inequality (SII)
-########################################################
-
-about_sii <- tagList(
-  tags$div(
-    tags$h6("What does the chart show?", class = "chart-header"),
-    tags$p("The chart shows the absolute inequality has changed over time. Absolute inequality is
-            measured using a value called the 'Slope Index of Inequality (SII)'. This is a measure of
-            the gap between the most and least disadvantaged populations.")
-  ),
-  tags$div(
-    tags$h6("How do I interpret the chart?", class = "chart-header"),
-    tags$p("The larger the SII, the greater the disparity between the most and least deprived areas.
-            An increasing trend suggests the gap between the most and least deprived areas is growing.")
-  )
-)
-
-###########################################################
-# About population attributable risk trends (PAR)
-##########################################################
-
-
-about_par <- tagList(
-  tags$div(
-    tags$h6("What does the chart show?", class = "chart-header"),
-    tags$p("The bar chart shows indicator values split by the deprivation quintiles. The area shaded
-       in purple is the same across all 5 quintiles, it shows the rate observed in the least deprived
-       quintile. The area shaded in blue represents the additional activity the 4 remaining quintiles
-       have over and above that seen in the least deprived quintile."),
-    tags$p("Looking at data in this way illustrates the potential impact of removing deprivation (i.e. 
-    in the hypothetical situation that all deprivation quintiles experienced the same rates).")
-  ),
-  tags$div(
-    tags$h6("Related resources", class = "chart-header"),
-    tags$p("You can read more about the Population Attributable Risk in the", tags$a("Measuring inequalities 
-           section", href = "https://www.scotpho.org.uk/methods-and-data/measuring-health-inequalities/", target = "_blank"),  "of the ScotPHO website.")
-    
-  )
-)
-
-
-about_par_trend <- tagList(
-  tags$div(
-    tags$h6("What does the chart show?", class = "chart-header"),
-    tags$p("The line chart shows the Population Attributable Risk (PAR) also known as Population Attributable Fraction (PAF).
-          The PAR is presented as a percentage, and describes by how much the overall rate of an indicator would increase or
-          decrease if all areas were to experience the rates observed in the most favourable area. ")
-  ),
-  tags$div(
-    tags$h6("How do I interpret the chart?", class = "chart-header"),
-    tags$p("The higher the PAR values the greater the impact of inequality on that indicator and the greater the potential for
-          improvement if this inequality could be removed."),
-    tags$p("The PAF describes a hypothetical situation and makes the assumption that all of the association between the risk 
-  factor and indicator is causal. In reality there could a number of other factors influencing the trends observed.")
-  ),
-  tags$div(
-    tags$h6("Related resources", class = "chart-header"),
-    tags$p("You can read more about the PAR in the", tags$a("Measuring inequalities 
-         section", href = "https://www.scotpho.org.uk/methods-and-data/measuring-health-inequalities/", target = "_blank")," of the ScotPHO website.")
-  )
-)
 
 ####################################################
-# About Tax incidence ############################# 
+# Subsidies incidence chart
 ####################################################
-
-
 help_incid_sub_chart_tab <- tagList(
+  # --- What does this show? ---
   tags$div(
     tags$h6("What does the subsidies incidence chart show?", class = "chart-header"),
-    tags$p("This chart displays how the monetary value of subsidies is distributed across the population, grouped by income deciles. 
-            Subsidies can be shown for:"),
-    tags$ul(
-      tags$li(strong("All Indirect Subsidies:"), " The combined value of Electricity Subsidy and Fuel Subsidy."),
-      tags$li(strong("Electricity Subsidy:"), " The implicit transfer households receive through below-cost electricity tariffs."),
-      tags$li(strong("Fuel Subsidy:"), " The implicit transfer households receive through reduced fuel prices.")
+    tags$p(
+      "How electricity and fuel subsidies are distributed by income decile."
     ),
-    tags$p("Subsidy incidence is expressed either as:"),
     tags$ul(
-      tags$li(strong("Absolute incidence:"), " The average value of subsidies received per household in each decile, measured in MWK."),
-      tags$li(strong("Relative incidence:"), " The value of subsidies as a share of household income or consumption, expressed as a percentage."),
-      tags$li(strong("Total level:"), " The aggregate value of subsidies captured by each decile, in MWK.")
+      tags$li(strong("All indirect subsidies"), ": electricity + fuel."),
+      tags$li(strong("Electricity subsidy"), ": implicit transfer from below-cost tariffs."),
+      tags$li(strong("Fuel subsidy"), ": allocation from the national fuel envelope.")
     ),
-    tags$p("Results are shown for both the ", strong("Pre-reform"), " and ", strong("Post-reform"), " scenarios, 
-            allowing comparison of who benefits before and after the simulated policy change.")
+    tags$p("Incidence can be shown as absolute (MWK/HH), relative (% of income/consumption), or total (aggregate MWK).")
   ),
-  
+  # --- User Interface controls ---
   tags$div(
-    tags$h6("How should I interpret the chart?", class = "chart-header"),
-    tags$p("The x-axis represents income deciles, with Decile 1 being the poorest 10% of households and Decile 10 the richest 10%."),
-    tags$p("The y-axis shows the selected parameter (absolute incidence, relative incidence, or total level). 
-            Bars are grouped by scenario (Pre-reform vs. Post-reform) to compare changes for each decile."),
-    tags$p("Key points to consider:"),
+    tags$h6("What can I change in the User Interface?", class = "chart-header"),
     tags$ul(
-      tags$li("If higher deciles capture more of the benefit, the subsidy is more pro-rich."),
-      tags$li("If lower deciles capture more, the subsidy is more pro-poor."),
-      tags$li("Electricity subsidies often benefit richer households if access is unequal."),
-      tags$li("Fuel subsidies tend to be more regressive, as wealthier households consume more fuel."),
-      tags$li("A shift between Pre-reform and Post-reform bars shows who gains or loses from the reform.")
+      tags$li(strong("Scenario"), ": Pre-reform vs Post-reform."),
+      tags$li(strong("Incidence type"), ": absolute / relative / total."),
+      tags$li(strong("Component"), ": all, electricity, or fuel.")
     )
   ),
-  
+  # --- Interpretation ---
+  tags$div(
+    tags$h6("How should I interpret the chart?", class = "chart-header"),
+    tags$ul(
+      tags$li("Higher bars in upper deciles → pro-rich capture."),
+      tags$li("Electricity often skews to richer groups where access is higher."),
+      tags$li("Fuel typically most regressive due to higher spending among the rich."),
+      tags$li("Pre → Post shifts show who gains/loses under reform.")
+    )
+  ),
+  # --- Why it matters ---
   tags$div(
     tags$h6("Why is this important in CEQ analysis?", class = "chart-header"),
-    tags$p("Understanding the distribution of subsidies is crucial for evaluating fiscal equity. 
-            CEQ analysis examines whether subsidies are progressive (greater share to poorer households) or regressive 
-            (greater share to richer households)."),
-    tags$p("Since indirect subsidies can be costly, identifying their beneficiaries helps policymakers 
-            decide whether to reform them and redirect resources to more targeted, pro-poor interventions."),
-    tags$p(HTML("To learn more about the CEQ methodology, visit the 
-                <a href='https://commitmenttoequity.org' target='_blank'>CEQ Institute website</a>."))
+    tags$p(
+      "Subsidies are costly. Incidence analysis identifies beneficiaries and informs retargeting toward pro-poor alternatives."
+    )
   )
 )
 
-
+####################################################
+# Direct tax incidence chart
+####################################################
 help_incid_dtx_chart_tab <- tagList(
+  # --- What does this show? ---
   tags$div(
     tags$h6("What does the direct tax incidence chart show?", class = "chart-header"),
-    tags$p("This chart displays how the burden of direct taxes is distributed across the population, grouped by income deciles. 
-            Direct tax incidence is expressed either as:"),
-    tags$ul(
-      tags$li(strong("Absolute incidence:"), " The average amount of direct taxes paid per household in each decile, measured in MWK."),
-      tags$li(strong("Relative incidence:"), " The share of household income paid in direct taxes, expressed as a percentage."),
-      tags$li(strong("Total level:"), " The aggregate direct tax revenue collected from households in each decile, in MWK.")
+    tags$p(
+      "Distribution of PAYE and CIT burdens by income decile."
     ),
-    tags$p("Results are shown for both the ", strong("Pre-reform"), " and ", strong("Post-reform"), " scenarios, 
-            allowing comparison of the tax burden before and after the simulated policy change.")
-  ),
-  
-  tags$div(
-    tags$h6("How should I interpret the chart?", class = "chart-header"),
-    tags$p("The x-axis represents income deciles, with Decile 1 being the poorest 10% of households and Decile 10 the richest 10%."),
-    tags$p("The y-axis shows the selected parameter (absolute incidence, relative incidence, or total level). 
-            Bars are grouped by scenario (Pre-reform vs. Post-reform) so you can compare changes for each decile."),
-    tags$p("Key points to consider:"),
     tags$ul(
-      tags$li("If the incidence rises more in higher deciles, the tax is more progressive."),
-      tags$li("If the relative incidence is flat or increases in lower deciles, the tax is regressive."),
-      tags$li("A shift between Pre-reform and Post-reform bars indicates who gains or loses from the reform.")
+      tags$li(strong("Absolute"), ": MWK/HH."),
+      tags$li(strong("Relative"), ": % of income."),
+      tags$li(strong("Total"), ": aggregate MWK by decile.")
+    ),
+    tags$p("Results for ", strong("Pre-reform"), " and ", strong("Post-reform"), " enable before/after comparisons.")
+  ),
+  # --- User Interface controls ---
+  tags$div(
+    tags$h6("What can I change in the User Interface?", class = "chart-header"),
+    tags$ul(
+      tags$li(strong("Scenario"), ": Pre vs Post."),
+      tags$li(strong("Incidence type"), ": absolute / relative / total."),
+      tags$li(strong("Tax component"), ": all direct, PAYE only, CIT only.")
     )
   ),
-  
+  # --- Interpretation ---
+  tags$div(
+    tags$h6("How should I interpret the chart?", class = "chart-header"),
+    tags$ul(
+      tags$li("Rising bars in higher deciles → progressive burden."),
+      tags$li("If lower deciles face high relative shares, the tax is regressive."),
+      tags$li("Pre → Post gaps reveal distributional impact of the reform.")
+    )
+  ),
+  # --- Why it matters ---
   tags$div(
     tags$h6("Why is this important in CEQ analysis?", class = "chart-header"),
-    tags$p("Understanding the distribution of the direct tax burden is crucial for evaluating fiscal equity. 
-            CEQ analysis examines whether tax reforms make the system more progressive (higher burden on richer households) 
-            or regressive (higher burden on poorer households)."),
-    tags$p("These results help identify whether the simulated policy aligns with equity and poverty reduction objectives, 
-            and whether additional measures may be needed to protect low-income households."),
-    tags$p(HTML("To learn more about the CEQ methodology, visit the 
-                <a href='https://commitmenttoequity.org' target='_blank'>CEQ Institute website</a>."))
+    tags$p(
+      "It tests whether tax changes align with eqUser Interfacety goals while meeting revenue needs."
+    )
   )
 )
 
+####################################################
+# Indirect tax incidence chart
+####################################################
 help_incid_itx_chart_tab <- tagList(
+  # --- What does this show? ---
   tags$div(
     tags$h6("What does the indirect tax incidence chart show?", class = "chart-header"),
-    tags$p("This chart displays how the burden of indirect taxes is distributed across the population, grouped by income deciles. 
-            Indirect taxes can be shown for:"),
-    tags$ul(
-      tags$li(strong("All Indirect Taxes:"), " The combined burden of VAT and Excise taxes."),
-      tags$li(strong("VAT Tax:"), " The burden of Value-Added Tax paid by households on goods and services."),
-      tags$li(strong("Excise Tax:"), " The burden of excise taxes paid by households on specific goods such as alcohol, tobacco, and fuel.")
+    tags$p(
+      "Distribution of VAT and excise burdens by income decile."
     ),
-    tags$p("Indirect tax incidence is expressed either as:"),
     tags$ul(
-      tags$li(strong("Absolute incidence:"), " The average amount of indirect taxes paid per household in each decile, measured in MWK."),
-      tags$li(strong("Relative incidence:"), " The share of household income or consumption paid in indirect taxes, expressed as a percentage."),
-      tags$li(strong("Total level:"), " The aggregate indirect tax revenue collected from households in each decile, in MWK.")
+      tags$li(strong("All indirect taxes"), ": VAT + excise."),
+      tags$li(strong("VAT"), ": broad consumption tax."),
+      tags$li(strong("Excise"), ": item-specific taxes (alcohol, tobacco, fuel, etc.).")
     ),
-    tags$p("Results are shown for both the ", strong("Pre-reform"), " and ", strong("Post-reform"), " scenarios, 
-            allowing comparison of the tax burden before and after the simulated policy change.")
+    tags$p("Incidence options: absolute (MWK/HH), relative (% of income/consumption), or total (aggregate MWK).")
   ),
-  
+  # --- User Interface controls ---
   tags$div(
-    tags$h6("How should I interpret the chart?", class = "chart-header"),
-    tags$p("The x-axis represents income deciles, with Decile 1 being the poorest 10% of households and Decile 10 the richest 10%."),
-    tags$p("The y-axis shows the selected parameter (absolute incidence, relative incidence, or total level). 
-            Bars are grouped by scenario (Pre-reform vs. Post-reform) so you can compare changes for each decile."),
-    tags$p("Key points to consider:"),
+    tags$h6("What can I change in the User Interface?", class = "chart-header"),
     tags$ul(
-      tags$li("If the incidence rises more in higher deciles, the tax is more progressive."),
-      tags$li("If the relative incidence is flat or increases in lower deciles, the tax is regressive."),
-      tags$li("VAT tends to be less progressive if poorer households spend more of their income on taxed goods."),
-      tags$li("Excise taxes can be regressive if they target goods consumed more by poorer households."),
-      tags$li("A shift between Pre-reform and Post-reform bars indicates who gains or loses from the reform.")
+      tags$li(strong("Scenario"), ": Pre vs Post."),
+      tags$li(strong("Incidence type"), ": absolute / relative / total."),
+      tags$li(strong("Tax component"), ": all, VAT, or excise.")
     )
   ),
-  
+  # --- Interpretation ---
+  tags$div(
+    tags$h6("How should I interpret the chart?", class = "chart-header"),
+    tags$ul(
+      tags$li("Burden typically rises with income; excise often concentrates at the top."),
+      tags$li("If relative incidence rises for the poor, the reform is regressive."),
+      tags$li("Pre → Post changes quantify distributional shifts.")
+    )
+  ),
+  # --- Why it matters ---
   tags$div(
     tags$h6("Why is this important in CEQ analysis?", class = "chart-header"),
-    tags$p("Understanding the distribution of indirect tax burdens is essential for evaluating fiscal equity. 
-            CEQ analysis assesses whether tax reforms make the system more progressive (higher burden on richer households) 
-            or regressive (higher burden on poorer households)."),
-    tags$p("These results help identify whether the simulated policy aligns with equity and poverty reduction objectives, 
-            and whether adjustments are needed to protect low-income households from disproportionate burdens."),
-    tags$p(HTML("To learn more about the CEQ methodology, visit the 
-                <a href='https://commitmenttoequity.org' target='_blank'>CEQ Institute website</a>."))
+    tags$p(
+      "It clarifies who ultimately pays consumption taxes and whether reforms protect low-income households."
+    )
   )
 )
 
-
+####################################################
+# Direct transfer incidence chart
+####################################################
 help_incid_dtr_chart_tab <- tagList(
+  # --- What does this show? ---
   tags$div(
     tags$h6("What does the direct transfer incidence chart show?", class = "chart-header"),
-    tags$p("This chart displays how the benefits from direct transfers are distributed across the population, grouped by income deciles. 
-            Direct transfers can be shown for:"),
-    tags$ul(
-      tags$li(strong("All Direct Transfers:"), " The combined value of direct cash transfers and near cash transfers received by households."),
-      tags$li(strong("Direct Cash Transfers:"), " Monetary transfers provided directly to households, such as social assistance or pension payments."),
-      tags$li(strong("Near Cash Transfers:"), " Transfers provided in the form of vouchers, food assistance, or other benefits with a monetary equivalent.")
+    tags$p(
+      "Distribution of direct cash and near-cash benefits by income decile."
     ),
-    tags$p("Direct transfer incidence is expressed either as:"),
     tags$ul(
-      tags$li(strong("Absolute incidence:"), " The average amount of transfers received per household in each decile, measured in MWK."),
-      tags$li(strong("Relative incidence:"), " The share of household income or consumption that comes from transfers, expressed as a percentage."),
-      tags$li(strong("Total level:"), " The aggregate value of transfers received by households in each decile, in MWK.")
+      tags$li(strong("All direct transfers"), ": cash + near-cash."),
+      tags$li(strong("Direct cash"), ": e.g., Government cash, FISP monetized coupons."),
+      tags$li(strong("Near-cash"), ": food aid, scholarships, public works.")
     ),
-    tags$p("Results are shown for both the ", strong("Pre-reform"), " and ", strong("Post-reform"), " scenarios, 
-            allowing comparison of the distribution of benefits before and after the simulated policy change.")
+    tags$p("Incidence options: absolute (MWK/HH), relative (% of income/consumption), or total (aggregate MWK).")
   ),
-  
+  # --- User Interface controls ---
   tags$div(
-    tags$h6("How should I interpret the chart?", class = "chart-header"),
-    tags$p("The x-axis represents income deciles, with Decile 1 being the poorest 10% of households and Decile 10 the richest 10%."),
-    tags$p("The y-axis shows the selected parameter (absolute incidence, relative incidence, or total level). 
-            Bars are grouped by scenario (Pre-reform vs. Post-reform) so you can compare changes for each decile."),
-    tags$p("Key points to consider:"),
+    tags$h6("What can I change in the User Interface?", class = "chart-header"),
     tags$ul(
-      tags$li("If the incidence is higher in lower deciles, the transfer is more pro-poor."),
-      tags$li("If the relative incidence is flat or higher in upper deciles, the transfer is less well targeted."),
-      tags$li("A shift between Pre-reform and Post-reform bars shows whether the reform improves targeting toward the poor or not.")
+      tags$li(strong("Scenario"), ": Pre vs Post."),
+      tags$li(strong("Incidence type"), ": absolute / relative / total."),
+      tags$li(strong("Component"), ": all, cash, or near-cash.")
     )
   ),
-  
+  # --- Interpretation ---
+  tags$div(
+    tags$h6("How should I interpret the chart?", class = "chart-header"),
+    tags$ul(
+      tags$li("Higher benefits in lower deciles → pro-poor targeting."),
+      tags$li("Pre → Post shifts show whether the reform improves targeting.")
+    )
+  ),
+  # --- Why it matters ---
   tags$div(
     tags$h6("Why is this important in CEQ analysis?", class = "chart-header"),
-    tags$p("Understanding the distribution of direct transfer benefits is crucial for assessing the equity impact of social protection policies. 
-            CEQ analysis examines whether reforms make the system more progressive by better targeting low-income households."),
-    tags$p("These results help policymakers evaluate if transfer programs are effective in reducing poverty and inequality, 
-            and whether design changes are needed to improve targeting efficiency."),
-    tags$p(HTML("To learn more about the CEQ methodology, visit the 
-                <a href='https://commitmenttoequity.org' target='_blank'>CEQ Institute website</a>."))
+    tags$p(
+      "It evaluates whether scarce fiscal resources reach vulnerable households and reduce poverty/inequality."
+    )
   )
 )
 
-
-
-
-
 ###########################################################
-# About SIMD trend chart
+# SIMD – level & trend
 ###########################################################
-
 about_simd <- tags$div(
   tags$h6("What does the chart show?", class = "chart-header"),
-  tags$p("The bar chart shows how the measure for a particular indicator varies according to the relative deprivation 
-  of the area people live in. The chart illustrate how rates in the most and least deprived areas 
-  compare and also whether there is a simple relationship between relative deprivation and a particular indicator.")
+  tags$p(
+    "Bar comparisons of an indicator across deprivation groups, highlighting differences ",
+    "between the most and least deprived and any monotonic gradient."
+  )
 )
-
-
 
 about_simd_trend <- tags$div(
   tags$h6("What does the chart show?", class = "chart-header"),
-  tags$p("The trend chart shows how the measure for a particular indicator varies according to the relative deprivation 
-  of the area people live in, over a period of time. The chart illustrate how rates in the most and least deprived areas 
-  compare over time and also whether there is a simple relationship between relative deprivation and a particular indicator.")
+  tags$p(
+    "Trends in the indicator by deprivation groups over time, showing whether gaps persist, narrow, or widen."
+  )
+)
+
+
+
+help_subsidies_tab <- tagList(
+  # ---- What are subsidies? ----
+  tags$div(
+    tags$h6("What are indirect subsidies?", class = "chart-header"),
+    tags$p(
+      "In this tool, “indirect subsidies” are price supports embedded in what households pay for ",
+      "energy—specifically ", strong("fuel"), " and ", strong("electricity"), ". ",
+      "A household’s subsidy is measured as the ", em("difference"), " between a ",
+      "counterfactual bill at the full (unsubsidized) tariff and the amount the household actually pays."
+    ),
+    tags$ul(
+      tags$li(strong("Fuel subsidy:"), " a national envelope (as % of GDP) is allocated across households ",
+              "in proportion to their annual fuel spending (domestic + enterprise)."),
+      tags$li(strong("Electricity subsidy:"), " based on ESCOM’s block tariff. We impute monthly kWh from reported bills, ",
+              "price those kWh at a higher, no-subsidy rate, then take the gap as the subsidy.")
+    )
+  ),
+  
+  # ---- How does the app calculate them? ----
+  tags$div(
+    tags$h6("How are fuel and electricity subsidies calculated?", class = "chart-header"),
+    tags$p(
+      "The simulation uses household microdata from IHS 2019/20 and the 2018–2020 ESCOM tariff. ",
+      "Key data sources and steps are:"
+    ),
+    tags$ul(
+      tags$li(
+        strong("Fuel (domestic use): "),
+        "Module ", code("HH_MOD_I2"), ", item ", code("hh_i05 == 212"),
+        " with spending ", code("hh_i06"), " → annualized to ", code("fuel_con")
+      ),
+      tags$li(
+        strong("Fuel (enterprise use): "),
+        "Module ", code("HH_MOD_N2"), ", spending ", code("hh_n41d"),
+        " → annualized to ", code("fuel_enter"),
+        ". For households with multiple businesses, we consolidate enterprise fuel by summing the ",
+        "minimum and maximum values per ", code("hhid"), " to avoid double counting."
+      ),
+      tags$li(
+        strong("Fuel allocation rule: "),
+        "Set a national fuel subsidy pot ", code("FuelPot = GDP × fuel_subsidy_pct_gdp/100"),
+        ". Compute each household’s annual fuel spend ", code("tfc1 = fuel_con_hh + fuel_enter_hh"),
+        ", then allocate ", code("tfc_hh = tfc1 × FuelPot / Σ(tfc1 × weight)")
+      ),
+      tags$li(
+        strong("Electricity (domestic): "),
+        "Module ", code("HH_MOD_F"), " with monthly/weekly/daily frequency ",
+        code("hh_f26a/hh_f26b"), " to annualize ", code("hh_f25 → elec_cons"),
+        " and derive ", code("elec_cons_m = elec_cons/12")
+      ),
+      tags$li(
+        strong("Imputing kWh from the bill: "),
+        "If no air-conditioner: first ", code("elec_block1_kwh"), " at ",
+        code("elec_rate_subsidized"), " then the remainder at ", code("elec_rate_block2"),
+        " (we invert this schedule to recover kWh from spending). ",
+        "If the household reports an air-conditioner (", code("HH_MOD_L: hh_l01 == 1 & hh_l02 == 506"), "), ",
+        "we impute kWh at a flat ", code("96"), " MWK/kWh."
+      ),
+      tags$li(
+        strong("Counterfactual (no-subsidy) bill: "),
+        "price all imputed kWh at ", code("elec_rate_block2"), " (no AC) or ", code("96"), " (AC). ",
+        "Annual electricity subsidy is ", code("(cws_month − elec_cons_m) × 12"), " floored at zero."
+      ),
+      tags$li(
+        strong("Electricity (enterprise): "),
+        "Module ", code("HH_MOD_N2"), " spending ", code("hh_n41e"),
+        " → annual ", code("elec_enter"), "; subsidy approximated as ",
+        code("elec_enter_sub = elec_enter × 0.15"), " due to limited tariff detail for businesses."
+      )
+    )
+  ),
+  
+  # ---- User Interface controls ----
+  tags$div(
+    tags$h6("What can I change in the User Interface?", class = "chart-header"),
+    tags$p("Use these inputs to stress-test reform scenarios:"),
+    tags$ul(
+      tags$li(strong("Fuel subsidy — national envelope: "),
+              code("fuel_subsidy_pct_gdp"), " (default ", code("0.243"), ")"),
+      tags$li(strong("Electricity tariff — subsidized block: "),
+              code("elec_rate_subsidized"), " (default ", code("47.5"), " MWK/kWh), ",
+              code("elec_block1_kwh"), " (default ", code("50"), " kWh/month), ",
+              code("elec_rate_block2"), " (default ", code("67.25"), " MWK/kWh)"),
+      tags$li("The air-conditioner proxy uses a fixed flat rate of ", code("96"), " MWK/kWh for imputing kWh.")
+    )
+  ),
+  
+  # ---- Output variables ----
+  tags$div(
+    tags$h6("What variables does the tool create?", class = "chart-header"),
+    tags$p("Key outputs added to the analysis dataset:"),
+    tags$ul(
+      tags$li(code("tfc_hh"), ": household fuel subsidy (annual MWK; stored on ", code("pid == 1"), ")."),
+      tags$li(code("elec_subsidy"), ": domestic electricity subsidy from tariff counterfactual (annual MWK)."),
+      tags$li(code("elec_enter_sub"), ": enterprise electricity subsidy (= 15% of annual enterprise bill)."),
+      tags$li(code("sub_electri"), ": total electricity subsidy = ", code("elec_subsidy + elec_enter_sub"),
+              " (stored on ", code("pid == 1"), ").")
+    )
+  ),
+  
+  # ---- Interpretation ----
+  tags$div(
+    tags$h6("How should I interpret the results?", class = "chart-header"),
+    tags$p(
+      "Fuel subsidies tend to be ", strong("regressive"), " because higher-income households spend more on fuel. ",
+      "Electricity subsidies are also often regressive, though less extremely, reflecting differential access to the grid ",
+      "and higher consumption among richer households."
+    )
+  ),
+  
+  # ---- Practical notes & safeguards ----
+  tags$div(
+    tags$h6("Practical notes and safeguards", class = "chart-header"),
+    tags$ul(
+      tags$li(strong("Units must match:"), " GDP should be in MWK, and ", code("fuel_subsidy_pct_gdp"),
+              " is a percent (not a share)."),
+      tags$li(strong("Weights:"), " when forming national totals for the fuel allocation denominator, survey weights are used if available."),
+      tags$li(strong("No double counting:"), " fuel and electricity totals are stored once per household on ", code("pid == 1"), "."),
+      tags$li(strong("Zero floor:"), " electricity subsidies are truncated at zero (no negative subsidies)."),
+      tags$li(strong("Enterprise electricity:"), " the 15% factor is a simplifying assumption due to limited tariff detail; ",
+              "adjust in code if better information is available."),
+      tags$li(strong("Multiple enterprises:"), " enterprise fuel uses a min+max consolidation within ", code("hhid"),
+              " to avoid duplicate counts while preserving scale.")
+    )
+  ),
+  
+  # ---- Why it matters ----
+  tags$div(
+    tags$h6("Why model subsidies in CEQ analysis?", class = "chart-header"),
+    tags$p(
+      "Subsidies use fiscal space and can undermine eqUser Interfacety if they are captured by higher-income groups. ",
+      "By quantifying who benefits and how much, the tool helps assess sustainability and the distributional impact ",
+      "of alternative tariff and budget settings."
+    ),
+    tags$p(HTML(
+      "Learn more about the CEQ approach at the ",
+      "<a href='https://commitmenttoeqUser Interfacety.org' target='_blank'>CEQ Institute website</a>."
+    ))
+  )
 )
 
 

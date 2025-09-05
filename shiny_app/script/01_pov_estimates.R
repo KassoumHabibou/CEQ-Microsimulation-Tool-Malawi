@@ -39,95 +39,9 @@ simulate_pov_est <- function(simulated_df) {
 
 
 
-get_coorporate_tx <- function(corp_tax_1, corp_tax_2, corp_tax_3, corp_tax_4, 
-                              corp_tax_5,corp_tax_6,corp_tax_7,corp_tax_8, corp_tax_9,
-                              corp_tax_10,corp_tax_11,corp_tax_12,corp_tax_13,corp_tax_14,
-                              corp_tax_15,corp_tax_16,corp_tax_17,corp_tax_18,
-                              remove_agriculture_exemption,remove_electricity_exemption) {
-  
-  
-  #browser()
-  # Assign tax rates to enterprises
-  temp_tx <- bl_df_firm %>% 
-    dplyr::select(hhid, pid, industry_sectors, hh_n09a, hh_n21a, hh_n21b, hh_n15b, hh_n40, tax_rate) %>%
-    mutate(
-      # Assign sector-specific rate
-      tax_rate_new = dplyr::case_when(
-        industry_sectors == 1 ~ corp_tax_1,
-        industry_sectors == 2 ~ corp_tax_2,
-        industry_sectors == 3 ~ corp_tax_3,
-        industry_sectors == 4 ~ corp_tax_4,
-        industry_sectors == 5 ~ corp_tax_5,
-        industry_sectors == 6 ~ corp_tax_6,
-        industry_sectors == 7 ~ corp_tax_7,
-        industry_sectors == 8 ~ corp_tax_8,
-        industry_sectors == 9 ~ corp_tax_9,
-        industry_sectors == 10 ~ corp_tax_10,
-        industry_sectors == 11 ~ corp_tax_11,
-        industry_sectors == 12 ~ corp_tax_12,
-        industry_sectors == 13 ~ corp_tax_13,
-        industry_sectors == 14 ~ corp_tax_14,
-        industry_sectors == 15 ~ corp_tax_15,
-        industry_sectors == 16 ~ corp_tax_16,
-        industry_sectors == 17 ~ corp_tax_17,
-        industry_sectors == 18 ~ corp_tax_18,
-        .default = tax_rate
-      )) 
-
-  temp_tx <- temp_tx %>%
-    mutate(
-      tax_rate_new = ifelse((industry_sectors == 1) & (hh_n15b >= 2010) & (remove_agriculture_exemption=="No"), 0,
-                        ifelse((industry_sectors == 1) & (hh_n15b >= 2010) & (remove_agriculture_exemption=="Yes"), 15, 
-                               ifelse((industry_sectors == 1) & (hh_n15b < 2010), 15, tax_rate_new))))
-  
-  
-  temp_tx <- temp_tx %>%
-    mutate(
-      tax_rate_new = ifelse((industry_sectors == 4) & (hh_n15b >= 2010) & (remove_electricity_exemption=="No"), 0,
-                        ifelse((industry_sectors == 4) & (hh_n15b >= 2010) & (remove_electricity_exemption=="Yes"), 15, 
-                               ifelse((industry_sectors == 4) & (hh_n15b < 2010), 15, tax_rate_new))))
-  
-  temp_tx <- temp_tx %>%
-    #
-    mutate(tax_rate_new = ifelse((hh_n21a == 1) & (hh_n21b == 1), 30,tax_rate_new))
-
-  temp_tx <- temp_tx %>%
-    # mutate(
-    #   tax_rate_new = ifelse(is.na(tax_rate_new), 15, tax_rate_new)
-    # )  %>%
-    mutate(tax_rate_new = ifelse((hh_n40 <= 1000), 0, tax_rate_new) %>% structure(label="Corporate tax rate"))
-
-
-
-  temp_tx <- temp_tx %>% 
-    mutate(
-      tax = hh_n40 * (tax_rate_new / 100),
-      pid=1
-    ) 
-  
-
-  
-  temp_tx <- temp_tx %>%
-    dplyr::group_by(hhid) %>%
-    mutate(
-      dtx_payt_hh = sum(tax, na.rm = TRUE) %>% structure(label="Corporate direct tax")
-    ) %>% 
-    ungroup() %>% 
-    filter(hh_n09a==1) %>% 
-    filter(!is.na(hh_n09a)) %>% 
-    dplyr::select(hhid, pid, dtx_payt_hh) %>% 
-    mutate(i_dtx_payt_hh = ifelse(dtx_payt_hh>0,1,0) %>% structure(label="HH payed corporate tax")) 
-  
-
-
-  temp_tx
-  }
-
-
-
 
 get_pov_indicator <- function(curr_pline, curr_area, df) {
-
+  
   if(curr_area == "Country"){
     curr_df <- df
   }else{
@@ -169,7 +83,7 @@ get_pov_indicator <- function(curr_pline, curr_area, df) {
       pov_rate_yc_pc  = sum(weight[yc_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE),
       pov_rate_yf_pc  = sum(weight[yf_pc  < !!sym(curr_pline)], na.rm = TRUE) * 100/ sum(weight, na.rm = TRUE)
     )
- 
+  
   # Compute number of poor 
   nbr_poor <- curr_df %>%
     dplyr::summarise(
@@ -213,8 +127,8 @@ get_pov_indicator <- function(curr_pline, curr_area, df) {
   
   # Poverty measurements matrice
   summary_tab <- as.data.frame(cbind(t(poverty_headcount_ratio), t(nbr_poor), t(poverty_gap), t(poverty_sev), t(poverty_welf), 
-                                Income = c("Market Income plus pensions", "Net Market Income",
-                                          "Gross Income","Disposable Income","Consumable Income","Final Income"))) %>% 
+                                     Income = c("Market Income plus pensions", "Net Market Income",
+                                                "Gross Income","Disposable Income","Consumable Income","Final Income"))) %>% 
     pivot_longer(
       cols = starts_with("V"),
       names_to = "Parameter",
@@ -226,11 +140,12 @@ get_pov_indicator <- function(curr_pline, curr_area, df) {
                               V3 = "Poverty gap",
                               V4 = "Poverty severity",
                               V5 = "Welfare"
-                              ),
-           `Post-reform` = round(as.numeric(`Post-reform`),2),
-            Area = curr_area,
-           `Poverty line` = curr_pline) 
-
+    ),
+    `Post-reform` = round(as.numeric(`Post-reform`),2),
+    Area = curr_area,
+    `Poverty line` = curr_pline) 
+  
   return(summary_tab)
 }
+
 

@@ -35,6 +35,14 @@ ineq_mod_ui <- function(id) {
                 radioButtons(inputId = ns("areas_filter"),
                              label = "Areas:",
                              choices = ineq_area_list)
+              ),
+              #  chart vs trend selector
+              radioButtons(
+                inputId = ns("chart_view_mode"),
+                label   = "View as:",
+                choices = c("Bar chart" = "bar", "Trend (line)" = "trend"),
+                selected = "bar",
+                inline  = TRUE
               )
             )
           )
@@ -205,9 +213,20 @@ ineq_mod_server <- function(id, simulated_ineq, root_session) {
         TRUE ~ paste0(selected_parameter)
       )
       
-      create_ineq_bar_chart(filtered_microsim_data(),
-                           xaxis_col = "Income",
-                           yaxis_col = "Post-reform") %>% 
+      # Decide which chart to draw
+      if (identical(input$chart_view_mode, "trend")) {
+        
+        hc <- create_ineq_trend_chart(
+          plot_data = filtered_microsim_data())
+        
+      } else {
+        hc <- create_ineq_bar_chart(filtered_microsim_data(),
+                                          xaxis_col = "Income",
+                                          yaxis_col = "Post-reform")
+      }
+      
+      
+        hc %>% 
         hc_exporting(
           filename = paste0("Inequality - ", first(filtered_microsim_data()$Parameter), " - ",
                             first(filtered_microsim_data()$Area)),
@@ -234,6 +253,7 @@ ineq_mod_server <- function(id, simulated_ineq, root_session) {
         mutate(impact = diff/`Pre-reform`) %>% 
         arrange(impact)
       
+   
       # Get the selected parameter for better column labeling
       selected_parameter <- first(filtered_microsim_data()$Parameter)
       
@@ -249,10 +269,10 @@ ineq_mod_server <- function(id, simulated_ineq, root_session) {
       reactable(df_table,
                 columns = list(
                   Income = colDef(name = "Income Concept"),
-                  `Pre-reform` = colDef(name = paste0("Pre-reform ", value_col_name)),
-                  `Post-reform` = colDef(name = paste0("Post-reform ", value_col_name)),
+                  `Pre-reform` = colDef(name = paste0("Pre-reform", value_col_name)),
+                  `Post-reform` = colDef(name = paste0("Post-reform", value_col_name)),
                   diff = colDef(name = "Diff (Post - Pre)"),
-                  impact = colDef(name = "Impact (%)"),
+                  impact = colDef(name = "Impact (%)")
                 )
       )
       

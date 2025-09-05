@@ -69,9 +69,16 @@ required_packages <- c(
   "tidyverse", "dplyr", "haven", "here", "DescTools", "labelled",
   "survey", "wINEQ", "Hmisc", "purrr", "bslib", "shiny", "tidyr",
   "shinyFeedback", "bsicons", "shinyjs", "cicerone",
-  "highcharter", "shinycssloaders", "reactable", "sf",
+  "highcharter", "shinycssloaders", "reactable", "sf", "rsconnect",
   "leaflet", "htmlwidgets", "shinytoastr", "RColorBrewer", "rlang"
 )
+
+# Remove the two problematic packages from your renv library
+renv::remove(c("xml2", "RcppArmadillo"))
+
+#Reinstall them from CRAN (explicit versions optional but safer)
+renv::install("xml2")             # or: renv::install("xml2@1.3.6")
+renv::install("RcppArmadillo")    # or: renv::install("RcppArmadillo@0.12.8.4.0")
 
 # Install them in the renv environment
 renv::install(all_dependencies)
@@ -79,6 +86,10 @@ renv::install(required_packages)
 
 
 # Snapshot so renv.lock is created
-renv::snapshot()
+renv::snapshot(prompt = FALSE)
+
+#Sanity-check what rsconnect will see
+rsconnect::appDependencies()[rsconnect::appDependencies()$Package %in% c("xml2","RcppArmadillo"), ]
+
 
 message("renv setup complete. Commit renv.lock and renv/ when deploying.")

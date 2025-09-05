@@ -17,7 +17,7 @@ incid_dtr_mod_ui <- function(id) {
       full_screen = FALSE,
       height = "80%",
       # sidebar for filters ------------------
-      sidebar = sidebar(width = 350,
+      sidebar = sidebar(width = 417,
                         open = list(mobile = "always-above"), # make contents of side collapse on mobiles above main content
                         accordion(
                           open = c("incid_dtr_line_filter_panel"), # guided tour panel closed by default
@@ -34,13 +34,21 @@ incid_dtr_mod_ui <- function(id) {
                                 
                                 #indicator filter (note this is a module)
                                 selectizeInput(ns("incid_dtr_nbr_dec"), 
-                                               label = "Select the number of deciles",
+                                               label = "Select the number of percentiles",
                                                choices = 2:10,
                                                selected = 5),
                                 
-                                radioButtons(inputId = ns("parameter_filter"), label = "Percentiles by: ", choices = pov_geo_income_list, selected = "Consumable Income"),
-                                radioButtons(inputId = ns("incid_dtr_type"), label = "Transfers: ", choices = c("All Direct Transfers", "Direct Cash Transfers", "Near Cash Transfers"), selected = "All Direct Transfers"),
-                                radioButtons(inputId = ns("incid_dtr_parameter"), label = "Parameter: ", choices = c("Absolute incidence", "Relative incidence","Total level"), selected = "Absolute incidence")
+                                radioButtons(inputId = ns("parameter_filter"), label = "Percentiles by: ", choices = pov_geo_income_list, selected = "Market Income plus pensions"),
+                                radioButtons(inputId = ns("incid_dtr_type"), label = "Transfer: ", choices = c("All Direct Transfer", "Direct Cash Transfer", "Near Cash Transfer"), selected = "All Direct Transfer"),
+                                radioButtons(inputId = ns("incid_dtr_parameter"), label = "Parameter: ", choices = c("Share of total Direct Transfer (%)", "Direct Transfer as % of income","Average Direct Transfer per household (MWK)","Total Direct Transfer (MWK)"), selected = "Share of total Direct Transfer (%)"),
+                                #  chart vs trend selector
+                                radioButtons(
+                                  inputId = ns("chart_view_mode"),
+                                  label   = "View as:",
+                                  choices = c("Bar chart" = "bar", "Trend (line)" = "trend"),
+                                  selected = "bar",
+                                  inline  = TRUE
+                                )
                                 
                             )
                           )) # close all accordion
@@ -124,77 +132,84 @@ incid_dtr_mod_server <- function(id, simulated_df, root_session) {
       )
       inc_var <- inc_map[[ input$parameter_filter ]] %||% "yc_pc"
       
-      # 2) Map tax incidence type -> tax variable 
-      tax_map <- c(
-        "All Direct Transfers"    = "dtr_all_hh",
-        "Direct Cash Transfers"      = "dct_hh",
-        "Near Cash Transfers" = "dtr_nct_hh"
+      # 2) Map dtr incidence type -> dtr variable 
+      dtr_map <- c(
+        "All Direct Transfer"    = "dtr_all_hh",
+        "Direct Cash Transfer"      = "dct_hh",
+        "Near Cash Transfer" = "dtr_nct_hh"
       )
-      tax_var <- tax_map[[ input$incid_dtr_type ]] %||% "dtr_all_hh"
+      dtr_var <- dtr_map[[ input$incid_dtr_type ]] %||% "dtr_all_hh"
       
       # 3) Attach chosen variables
       temp_data <- temp_data %>%
         left_join(
           bl_df %>%
             dplyr::select(hhid, pid, input_income = dplyr::all_of(inc_var),
-                          tax_selected_pre = dplyr::all_of(tax_var))
+                          dtr_selected_pre = dplyr::all_of(dtr_var))
           ,
           by = c("hhid","pid")
         ) %>%
         dplyr::mutate(
-          tax_selected = .data[[tax_var]]
+          dtr_selected = .data[[dtr_var]]
         )
       
-      # 4) Weighted deciles (creates a 'decile' column using input_income and weight)
-      temp_data <- make_weighted_deciles(temp_data, "input_income", as.numeric(input$incid_dtr_nbr_dec))
-      
+      # 4) Weighted percentiles (creates a 'percentile' column using input_income and weight)
+      temp_data <- make_weighted_percentiles(temp_data, "input_income", as.numeric(input$incid_dtr_nbr_dec))
+    
       # 5) Keep the essentials
       temp_data <- temp_data %>% 
-        dplyr::select(hhid, weight, decile, input_income, tax_selected, tax_selected_pre)
+        dplyr::select(hhid, weight, percentile, input_income, dtr_selected, dtr_selected_pre)
       
      
-      # 6) Compute incidence by decile
-      incidence_by_decile <- temp_data %>%
-        dplyr::group_by(decile) %>%
+      # 6) Compute incidence by percentile
+      incidence_by_percentile <- temp_data %>%
+        dplyr::group_by(percentile) %>%
         dplyr::summarise(
-          tax_wt    = sum(weight * tax_selected, na.rm = TRUE),
-          tax_wt_pre    = sum(weight * tax_selected_pre, na.rm = TRUE),
+          dtr_wt    = sum(weight * dtr_selected, na.rm = TRUE),
+          dtr_wt_pre    = sum(weight * dtr_selected_pre, na.rm = TRUE),
+          
+          # Average
+          dtr_mean_wt    = weighted.mean(dtr_selected,weight, na.rm = TRUE),
+          dtr_mean_wt_pre    = weighted.mean(dtr_selected_pre,weight, na.rm = TRUE),
+          
           income_wt = sum(weight * input_income,  na.rm = TRUE),
           .groups = "drop"
         ) %>%
         ungroup() %>% 
         dplyr::mutate(
-          # Relative incidence: weighted average tax rate within the decile (in %)
-          relative_incidence_pct = ifelse(income_wt > 0, 100 * tax_wt / income_wt, NA_real_),
-          relative_incidence_pct_pre = ifelse(income_wt > 0, 100 * tax_wt_pre / income_wt, NA_real_),
+          # Relative incidence: weighted average dtr rate within the percentile (in %)
+          relative_incidence_pct = ifelse(income_wt > 0, 100 * dtr_wt / income_wt, NA_real_),
+          relative_incidence_pct_pre = ifelse(income_wt > 0, 100 * dtr_wt_pre / income_wt, NA_real_),
           
-          # Absolute incidence: share of total taxes paid by this decile (in %)
-          absolute_incidence_pct = 100 * tax_wt / sum(tax_wt, na.rm = TRUE),
-          absolute_incidence_pct_pre = 100 * tax_wt_pre / sum(tax_wt_pre, na.rm = TRUE),
+          # Absolute incidence: share of total dtres paid by this percentile (in %)
+          absolute_incidence_pct = 100 * dtr_wt / sum(dtr_wt, na.rm = TRUE),
+          absolute_incidence_pct_pre = 100 * dtr_wt_pre / sum(dtr_wt_pre, na.rm = TRUE),
           
-          # Level (currency units): weighted tax amount in the decile
-          level_tax = tax_wt,
-          level_tax_pre = tax_wt_pre
+          # Level (currency units): weighted dtr amount in the percentile
+          level_dtr = dtr_wt,
+          level_dtr_pre = dtr_wt_pre
         ) %>%
-        dplyr::arrange(decile)
+        dplyr::arrange(percentile)
       
       # Round for display
-      incidence_by_decile <- incidence_by_decile %>%
+      incidence_by_percentile <- incidence_by_percentile %>%
         dplyr::mutate(
           # Post-reform
           relative_incidence_pct = round(relative_incidence_pct, 2),
           absolute_incidence_pct = round(absolute_incidence_pct, 2),
-          level_tax              = round(level_tax),
+          level_dtr              = round(level_dtr),
+          dtr_mean_wt = round(dtr_mean_wt),
           # Pre-reform
           relative_incidence_pct_pre = round(relative_incidence_pct_pre, 2),
           absolute_incidence_pct_pre = round(absolute_incidence_pct_pre, 2),
-          level_tax_pre              = round(level_tax_pre)
+          level_dtr_pre              = round(level_dtr_pre),
+          dtr_mean_wt_pre = round(dtr_mean_wt_pre)
         )
       
       
       
       
-      incidence_by_decile
+      incidence_by_percentile
     })
     
     
@@ -211,8 +226,8 @@ incid_dtr_mod_server <- function(id, simulated_df, root_session) {
       # display titles with improved clarity
       div(
         tags$h5(paste0("Incidence Indicator: ", input$incid_dtr_parameter), class = "chart-header"), # selected Parameter with clearer label
-        tags$h6(paste0("Taxes: ", input$incid_dtr_type)), # selected Area
-        tags$h6(paste0("Decile parameter: ", input$parameter_filter)) # selected Poverty line
+        tags$h6(paste0("Direct Transfer: ", input$incid_dtr_type)), # selected Area
+        tags$h6(paste0("Percentile Parameter: ", input$parameter_filter)) # selected Poverty line
       )
       
     })
@@ -236,9 +251,11 @@ incid_dtr_mod_server <- function(id, simulated_df, root_session) {
       
       # --- pick which column to show based on the radioButtons selection ----
       param_col <- dplyr::case_when(
-        input$incid_dtr_parameter == "Relative incidence" ~ "relative_incidence_pct",
-        input$incid_dtr_parameter == "Total level"        ~ "level_tax",
-        TRUE                                              ~ "absolute_incidence_pct"   # "Absolute incidence"
+        input$incid_dtr_parameter == "Direct Transfer as % of income" ~ "relative_incidence_pct",
+        input$incid_dtr_parameter == "Total Direct Transfer (MWK)"        ~ "level_dtr",
+        input$incid_dtr_parameter == "Average Direct Transfer per household (MWK)" ~ "dtr_mean_wt",
+        input$incid_dtr_parameter == "Share of total Direct Transfer (%)" ~ "absolute_incidence_pct",
+        TRUE                                              ~ NA   # "Absolute incidence"
       )
       
       # Create a clearer chart title based on the parameter
@@ -252,9 +269,19 @@ incid_dtr_mod_server <- function(id, simulated_df, root_session) {
           Value  = .data[[param_col]],
           Value_pre = .data[[paste0(param_col,'_pre')]]
         ) %>% 
-        select(decile, Value, Value_pre)
+        select(percentile, Value, Value_pre)
       
-      create_incid_bar_chart(plot_data) %>% 
+      # Decide which chart to draw
+      if (identical(input$chart_view_mode, "trend")) {
+        
+        hc <- create_incid_trend_chart(plot_data)
+        
+      } else {
+        hc <- create_incid_bar_chart(plot_data)
+      }
+      
+      
+      hc %>% 
         hc_exporting(
           filename = paste0("Incidence - ", input$incid_dtr_parameter, " - ",
                             input$incid_dtr_type, " - ",
@@ -263,9 +290,9 @@ incid_dtr_mod_server <- function(id, simulated_df, root_session) {
             title = list(text = chart_title),
             subtitle = list(
               text = paste0(
-                "Taxes: ", input$incid_dtr_type,
+                "Direct Transfer: ", input$incid_dtr_type,
                 "<br>",
-                "Decile parameter: ",  input$parameter_filter
+                "Percentile Parameter: ",  input$parameter_filter
               ),
               useHTML = TRUE  
             ))
@@ -280,9 +307,11 @@ incid_dtr_mod_server <- function(id, simulated_df, root_session) {
       
       # --- pick which column to show based on the radioButtons selection ----
       param_col <- dplyr::case_when(
-        input$incid_dtr_parameter == "Relative incidence" ~ "relative_incidence_pct",
-        input$incid_dtr_parameter == "Total level"        ~ "level_tax",
-        TRUE                                              ~ "absolute_incidence_pct"   # "Absolute incidence"
+        input$incid_dtr_parameter == "Direct Transfer as % of income" ~ "relative_incidence_pct",
+        input$incid_dtr_parameter == "Total Direct Transfer (MWK)"        ~ "level_dtr",
+        input$incid_dtr_parameter == "Average Direct Transfer per household (MWK)" ~ "dtr_mean_wt",
+        input$incid_dtr_parameter == "Share of total Direct Transfer (%)" ~ "absolute_incidence_pct",
+        TRUE                                              ~ NA   # "Absolute incidence"
       )
       
       # Get the selected parameter for better column labeling
@@ -290,29 +319,30 @@ incid_dtr_mod_server <- function(id, simulated_df, root_session) {
       
       # Create clearer column names based on the parameter
       value_col_name <- case_when(
-        input$incid_dtr_parameter == "Absolute incidence" ~ "Absolute incidence (%)",
-        input$incid_dtr_parameter == "Relative incidence" ~ "Relative incidence (%)",
-        input$incid_dtr_parameter == "Total level" ~ "Total level (in MWK)"
+        input$incid_dtr_parameter == "Direct Transfer as % of income" ~ "Direct Transfer as % of income",
+        input$incid_dtr_parameter == "Total Direct Transfer (MWK)" ~ "Total Direct Transfer (MWK)",
+        input$incid_dtr_parameter == "Average Direct Transfer per household (MWK)"~ "Average Direct Transfer per household (MWK)",
+        input$incid_dtr_parameter == "Share of total Direct Transfer (%)" ~ "Share of total Direct Transfer (%)",
+        TRUE  ~ NA
       )
-      
       
       df_table <- incid_data() %>%
         dplyr::mutate(
           Value  = .data[[param_col]],
           Value_pre = .data[[paste0(param_col,'_pre')]]
         ) %>% 
-        select(decile, Value, Value_pre)
+        select(percentile, Value, Value_pre)
       
       
       df_table <- df_table %>% 
-        mutate(diff = Value - Value_pre) %>% 
-        mutate(Prop = diff*100/Value_pre)
+        mutate(diff = round(Value - Value_pre,2)) %>% 
+        mutate(Prop = round(diff*100/Value_pre,2))
       
       
       # Use the filtered data directly
       reactable(df_table,
                 columns = list(
-                  decile = colDef(name = "Decile"),
+                  percentile = colDef(name = "Percentile"),
                   Value_pre  = colDef(name = paste0("Pre-reform ", value_col_name)),
                   Value = colDef(name = paste0("Post-reform ", value_col_name)),
                   diff = colDef(name = "Diff (Post - Pre)"),

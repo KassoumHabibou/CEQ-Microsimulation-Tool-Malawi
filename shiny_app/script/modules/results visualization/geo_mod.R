@@ -44,9 +44,17 @@ geo_pov_mod_ui <- function(id) {
                 ),
                 selected = "National poverty line (454 MWK per day)"
               ),
-              radioButtons(inputId = ns("geo_income"), label = "Income concept", choices = pov_geo_income_list),
-              radioButtons(inputId = ns("geo_pov_parameter_filter"), label = "Parameter to show:", choices = setdiff(pov_parameter_list, "Welfare")),
-              radioButtons(inputId = ns("geo_pov_areas_filter"), label = "Areas:", choices = pov_geo_area_list)
+              radioButtons(inputId = ns("geo_income"), label = "Income concept", choices = pov_geo_income_list, selected = "Disposable Income"),
+              radioButtons(inputId = ns("geo_pov_parameter_filter"), label = "Parameter to show:", choices = setdiff(pov_parameter_list, "Welfare"), selected = "Rate of poverty"),
+              radioButtons(inputId = ns("geo_pov_areas_filter"), label = "Areas:", choices = pov_geo_area_list),
+              #  chart vs trend selector
+              radioButtons(
+                inputId = ns("chart_view_mode"),
+                label   = "View as:",
+                choices = c("Bar chart" = "bar", "Trend (line)" = "trend"),
+                selected = "bar",
+                inline  = TRUE
+              )
             )
           )
         )
@@ -179,6 +187,10 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
         temp_data <- temp_data %>% filter(Income == input$geo_income)
       }      
       
+      if(input$geo_pov_parameter_filter=="Number of poor") {
+        temp_data <- temp_data %>%
+          mutate(across(where(is.numeric), ~ round(.x, 0)))
+      }
       
       temp_data <- temp_data %>% 
         mutate(
@@ -224,7 +236,7 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
       
       # Create a clearer title based on the parameter
       parameter_title <- case_when(
-        selected_parameter == "Number of poor" ~ "Number of Poor People",
+        selected_parameter == "Number of poor" ~ "Number of Poor",
         selected_parameter == "Rate of poverty" ~ "Poverty Rate",
         selected_parameter == "Poverty gap" ~ "Poverty Gap",
         selected_parameter == "Poverty severity" ~ "Poverty Severity",
@@ -251,7 +263,7 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
       
       # Create a clearer title based on the parameter
       parameter_title <- case_when(
-        selected_parameter == "Number of poor" ~ "Number of Poor People",
+        selected_parameter == "Number of poor" ~ "Number of Poor",
         selected_parameter == "Rate of poverty" ~ "Poverty Rate",
         selected_parameter == "Poverty gap" ~ "Poverty Gap",
         selected_parameter == "Poverty severity" ~ "Poverty Severity",
@@ -274,7 +286,7 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
       
       # Create a clearer title based on the parameter
       parameter_title <- case_when(
-        selected_parameter == "Number of poor" ~ "Number of Poor People",
+        selected_parameter == "Number of poor" ~ "Number of Poor",
         selected_parameter == "Rate of poverty" ~ "Poverty Rate",
         selected_parameter == "Poverty gap" ~ "Poverty Gap",
         selected_parameter == "Poverty severity" ~ "Poverty Severity",
@@ -302,7 +314,7 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
       
       # Create a clearer title based on the parameter
       parameter_title <- case_when(
-        selected_parameter == "Number of poor" ~ "Number of Poor People",
+        selected_parameter == "Number of poor" ~ "Number of Poor",
         selected_parameter == "Rate of poverty" ~ "Poverty Rate",
         selected_parameter == "Poverty gap" ~ "Poverty Gap",
         selected_parameter == "Poverty severity" ~ "Poverty Severity",
@@ -330,6 +342,26 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
     output$geo_pov_chart <- renderHighchart({
       req(geo_data())
       
+      # Build an ordering key per admin
+      ord_df <- geo_data() %>% 
+        dplyr::transmute(
+          admin_name,
+          pre  = `Pre-reform`,
+          post = `Post-reform`
+        ) %>% 
+        dplyr::distinct() %>% 
+        dplyr::mutate(
+          abs_change = post - pre,
+          pct_change = ifelse(!is.na(pre) & pre != 0, 100 * (post - pre) / pre, NA_real_)
+        )
+      
+      admin_order <- ord_df %>% 
+        dplyr::arrange(dplyr::desc(pct_change)) %>% 
+        dplyr::pull(admin_name)
+      
+      # factor order for x-axis
+      #plot_data$admin_name <- factor(plot_data$admin_name)
+      
       
       # Reshape to long format for plotting
       plot_data_long <- geo_data() %>%
@@ -341,26 +373,49 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
       
       plot_data_long <- plot_data_long %>%
         mutate(Policy = factor(Policy, levels = c("Pre-reform", "Post-reform")),
-               admin_name = factor(admin_name),
-               color = hc_colors_vec[as.character(Policy)])
+               admin_name = factor(admin_name, levels = admin_order),
+               color = hc_colors_vec[as.character(Policy)]) %>% 
+        dplyr::arrange(.data$Policy, .data$admin_name)
       
-      #browser()
-      # Create dumbbell chart
+
+      # Decide which chart to draw
+      if (identical(input$chart_view_mode, "trend")) {
+        
+        hc <-   highcharter::hchart(
+          plot_data_long,
+          type = "line",
+          highcharter::hcaes(x = admin_name, y = Value, group = Policy)
+        ) %>% 
+          highcharter::hc_colors(unname(hc_colors_vec[levels(plot_data_long$Policy)])) %>% 
+          highcharter::hc_xAxis(
+            title = list(text = "Administrative area"),
+            categories = levels(plot_data_long$admin_name),
+            labels = list(rotation = -35)
+          ) %>% 
+          highcharter::hc_yAxis(title = list(text = "")) %>% 
+          highcharter::hc_plotOptions(series = list(marker = list(enabled = TRUE, radius = 3),
+                                                    lineWidth = 3)) %>% 
+          highcharter::hc_tooltip(shared = TRUE, valueDecimals = 2) 
+
+        
+      } else {
       # Plot using highcharter
-      hc <- hchart(
+      hc <- highcharter::hchart(
         plot_data_long,
         type = "column",
         hcaes(x = admin_name, y = Value, group = Policy)) %>% 
         hc_colors(unname(hc_colors_vec[levels(plot_data_long$Policy)])) %>%
-        hc_xAxis(title = list(text = "")) %>% 
+        hc_xAxis(title = list(text = "Administrative area")) %>% 
         hc_yAxis(title = list(text = "")) %>% 
-        #hc_add_theme(theme) %>% 
         hc_plotOptions(column = list(groupPadding = 0.1)) %>% 
         hc_tooltip(shared = TRUE)%>%
         hc_caption(
           text = "Data source: Malawi Fifth Integrated Household Survey 2019-2020",
           style = list(fontSize = "8px", color = "black")
-        ) %>% 
+        ) }
+      
+      
+      hc %>% 
         hc_exporting(
           filename = paste0("Geo Poverty - ", first(geo_data()$Parameter), " - ",
                             first(geo_data()$Area), " - ",
@@ -413,7 +468,17 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
                     opacity = 1, 
                     label = ~paste0(map_data()$admin_name, ": ", map_data()$impact),
                     highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = TRUE)) %>% 
-        addLegend(pal = value_palette(), values = ~impact) %>% 
+        addLegend(
+          pal      = value_palette(),
+          values   = ~impact,
+          position = "topright",
+          title    = HTML("Impact<br/>(% change)"),
+          labFormat = labelFormat(
+            digits = 1,
+            suffix = "%"
+          ),
+          opacity  = 0.8
+        ) %>%
         # add option to save chart as png
         onRender(
           "function(el, x) {

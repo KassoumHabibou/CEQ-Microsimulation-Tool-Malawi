@@ -110,8 +110,8 @@ dtr_onc_hh_catalog  <- readRDS(paste0(here(), output_folder, "/shiny_data/dtr_on
 
 ######################## Loading the datasets ###############################
 # shapefiles (for map) 
-mlw_bound_region <- read_sf(paste0(here(),output_folder,"/Shapefile/region_geo.shp"))
-mlw_bound_district <- read_sf(paste0(here(),output_folder,"/Shapefile/district_geo.shp"))
+mlw_bound_region <- read_sf(paste0(here(),output_folder,"/shapefile/region_geo.shp"))
+mlw_bound_district <- read_sf(paste0(here(),output_folder,"/shapefile/district_geo.shp"))
 
 
 # List of possible selected output
@@ -122,7 +122,7 @@ pov_area_list <- sort(unique(bl_cncpts$Area))
 ineq_parameter_list <- sort(unique(bl_ineq$Parameter)) 
 ineq_area_list <- sort(unique(bl_ineq$Area)) 
 pov_geo_area_list <- sort(unique(bl_geo_cncpts$Area)) 
-pov_geo_income_list <- sort(unique(bl_geo_cncpts$Income)) 
+pov_geo_income_list <- sort(unique(bl_geo_cncpts$Income))
 
 
 

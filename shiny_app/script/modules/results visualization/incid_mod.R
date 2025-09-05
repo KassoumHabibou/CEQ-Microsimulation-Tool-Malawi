@@ -24,7 +24,7 @@ incid_mod_ui <- function(id) {
         incid_itx_mod_ui(ns("incid_itx"))
       ),
       bslib::nav_panel(
-        title = "Direct transfers", value = "incid_dtr",
+        title = "Transfers", value = "incid_dtr",
         incid_dtr_mod_ui(ns("incid_dtr"))
       ),
       bslib::nav_panel(

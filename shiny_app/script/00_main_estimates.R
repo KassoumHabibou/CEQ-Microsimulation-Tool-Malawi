@@ -15,8 +15,9 @@ simulate_main_df <- function(
   remove_electricity_exemption,
   
   # Indirect taxes
-  vat_codes, vat_post,
-  excise_codes, excise_post,
+
+  vat_group,vat_codes, vat_name, vat_post,
+  excise_group,excise_codes, excise_name, excise_post,
   
   # Subsidies (cash)
   dct_gov_hh_decile,  dct_gov_hh,
@@ -30,18 +31,21 @@ simulate_main_df <- function(
   dtr_ifwp_hh_decile,  dtr_ifwp_hh,
   dtr_ses_hh_decile,   dtr_ses_hh,
   dtr_tes_hh_decile,   dtr_tes_hh,
-  dtr_onc_hh_decile,   dtr_onc_hh
+  dtr_onc_hh_decile,   dtr_onc_hh,
   
   # Electricity and fuel subsidies
-  # elec_rate_subsidized,
-  # elec_block1_kwh,
-  # elec_rate_block2,
-  # fuel_subsidy_pct_gdp
+  elec_rate_subsidized,
+  elec_block1_kwh,
+  elec_rate_block2,
+  shr_sub_firm,
+  
+  # Fuel subsidies
+  fuel_subsidy_pct_gdp
 ) {
   
   sim_df <- bl_df %>% 
     dplyr::select(hhid, pid, decile, region, district, weight, i22_return_a, 
-                  sub_electri_hh, sub_fuel_hh, yp_hh, elec_cons_m, elec_enter,
+                  yp_hh, elec_cons_m, elec_enter,
                   educ_hh, health_hh, Users_fee_hh, hhsize, reside, pline_mod)
   
   
@@ -91,15 +95,19 @@ simulate_main_df <- function(
   ######################## Indirect taxes (VAT/Excise) ################
   temp_d2 <- get_tx(
     curr_df      = bl_itx,          # baseline item-level spending table
+    vat_group = vat_group,
     vat_codes    = vat_codes,
+    vat_name    = vat_name,
     vat_post     = vat_post,        # % per item
+    excise_group = excise_group,
     excise_codes = excise_codes,
+    excise_name = excise_name,
     excise_post  = excise_post      # % per item
   )
   
   sim_df <- sim_df %>%
     dplyr::left_join(temp_d2, by = "hhid") 
-  
+
   ######################## Direct cash transfert ################  
   
   temp_d3 <- get_dct(
@@ -118,9 +126,9 @@ simulate_main_df <- function(
   ## Missing values
   sim_df <- sim_df %>%
     mutate(dct_hh = ifelse(is.na(dct_hh),0,dct_hh))
-  
+
   # after (round everything to 2 decimals)
-  sim_df <- sim_df %>% dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 2)))
+  #sim_df <- sim_df %>% dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 2)))
   
   ######################## Near-cash transfert ##################################    
   # Build a minimal baseline slice and (optionally) filter to near-cash recipients
@@ -163,31 +171,37 @@ simulate_main_df <- function(
   ######################## Electricity sub ##################################    
   # Build a minimal baseline slice and (optionally) filter to near-cash recipients
   # Electricity: use only the 3 UI inputs (reference = 50 MWK/kWh handled inside)
-  browser()
+ 
   temp_elec <- get_electricity_subsidy(
-    curr_df              = bl_df %>% dplyr::select(hhid, pid, decile, elec_cons_m, elec_enter),
-    elec_rate_subsidized = input$elec_rate_subsidized,
-    elec_block1_kwh      = input$elec_block1_kwh,
-    elec_rate_block2     = input$elec_rate_block2
+    curr_df              = bl_df %>% dplyr::select(hhid, pid, decile, cwsa, elec_cons, 
+                                                   elec_cons_m, elec_enter, i_air, 
+                                                   hh_l01, hh_l02, hh_n41e),
+    elec_rate_subsidized = elec_rate_subsidized,
+    elec_block1_kwh      = elec_block1_kwh,
+    elec_rate_block2     = elec_rate_block2,
+    shr_sub_firm = shr_sub_firm
   )
   
 
   # Fuel: UI gives only % of GDP; GDP pulled via get_gdp_mwk()
   temp_fuel <- get_fuel_subsidy_from_pct_gdp(
-    curr_df              = bl_df %>% dplyr::select(hhid, pid, decile, fuel_con, fuel_enter, dplyr::any_of("weight")),
-    fuel_subsidy_pct_gdp = input$fuel_subsidy_pct_gdp,
-    weight_col           = if ("weight" %in% names(bl_df)) "weight" else NULL
+    curr_df              = bl_df %>% 
+      dplyr::select(hhid, pid, decile, tfc1, fuel_con, fuel_enter, weight) %>% 
+      filter(pid==1),
+    fuel_subsidy_pct_gdp = fuel_subsidy_pct_gdp
   )
-  
-  
+
   # Merge back into the simulation frame
+  ## Electricity
   sim_df <- sim_df %>%
-    dplyr::left_join(temp_elec, by = c("hhid","pid","decile")) %>%
-    dplyr::mutate(sub_electri = ifelse(is.na(sub_electri), 0, sub_electri)) %>%
-    dplyr::left_join(temp_fuel, by = c("hhid","pid","decile")) %>%
-    dplyr::mutate(tfc_hh = ifelse(is.na(tfc_hh), 0, tfc_hh)) %>%
-    dplyr::mutate(indirect_subsidies_hh = pmax(0, sub_electri + tfc_hh))
+    dplyr::left_join(temp_elec, by = c("hhid","pid")) %>%
+    dplyr::mutate(sub_electri_hh = ifelse(is.na(sub_electri_hh), 0, sub_electri_hh))
   
+  ## Fueld
+  sim_df <- sim_df %>%
+    dplyr::left_join(temp_fuel, by = c("hhid")) %>%
+    dplyr::mutate(sub_fuel_hh = ifelse(is.na(sub_fuel_hh), 0, sub_fuel_hh))
+
   ####################################################################################
   ######################## Income concepts estimates #################################
   ####################################################################################
@@ -196,10 +210,10 @@ simulate_main_df <- function(
   ######## Direct and inderect taxes ###############################################
   sim_df <- sim_df %>%
     dplyr::mutate(
-      dtx_all_hh = (dtx_PIT_hh + dtx_payt_hh) %>% structure(label="All direct taxes paid, HH total"),
-      dtr_all_hh = (dct_hh + dtr_nct_hh) %>% structure(label="All direct transfers, HH total"),
-      sub_all_hh = (sub_electri_hh + sub_fuel_hh) %>% structure(label="All indirect subsidies, HH total"),
-      itx_all_hh = (itx_vatx_hh + itx_excx_hh) %>% structure(label="All indirect taxes, HH total")
+      dtx_all_hh = pmax(0, (dtx_PIT_hh + dtx_payt_hh)) %>% structure(label="All direct taxes paid, HH total"),
+      dtr_all_hh = pmax(0, (dct_hh + dtr_nct_hh)) %>% structure(label="All direct transfers, HH total"),
+      sub_all_hh = pmax(0, (sub_electri_hh + sub_fuel_hh)) %>% structure(label="All indirect subsidies, HH total"),
+      itx_all_hh = pmax(0, (itx_vatx_hh + itx_excx_hh)) %>% structure(label="All indirect taxes, HH total")
     )
   
   ######################## Income concepts ############################
@@ -230,7 +244,7 @@ simulate_main_df <- function(
       
     )
   
-  sim_df <- sim_df %>% mutate(across(where(is.numeric), ~ round(.x, 10)))
+
   # STEP 5: Compute per capita versions of income concepts
   sim_df <- sim_df %>%
     mutate(
@@ -244,7 +258,8 @@ simulate_main_df <- function(
     mutate(pline_mod_low = 656.7*365,
            pline_mod_middle = 1115*365)
   
- 
+  # Rounding numbers
+  sim_df <- sim_df %>% mutate(across(where(is.numeric), ~ round(.x, 2)))
   
   return(sim_df)
 }
@@ -385,28 +400,43 @@ get_dct <- function(curr_df, dct_gov_hh_decile, dct_gov_hh, dct_fips_hh_decile, 
 }
 
 
-get_tx <- function(curr_df, vat_codes, vat_post, excise_codes, excise_post) {
+get_tx <- function(curr_df, vat_group, vat_codes, vat_name, vat_post, 
+                   excise_group, excise_codes, excise_name, excise_post) {
   
-  
+
   # Build mapping tables (post rates in FRACTIONS)
   vat_map <- tibble::tibble(
+    group = vat_group,
     code = vat_codes,
-    vat_rate_new = pmax(0, pmin(100, as.numeric(vat_post))) / 100
+    item = vat_name,
+    vat_rate_new = round(as.numeric(vat_post)/100,3),
   )
+  
   excise_map <- tibble::tibble(
+    group = excise_group,
     code = excise_codes,
-    excise_rate_new = pmax(0, pmin(1000, as.numeric(excise_post))) / 100
+    item = excise_name,
+    excise_rate_new = round(as.numeric(excise_post)/100,3),
   )
 
+
+  curr_df <- curr_df %>%
+    select(hhid, group, code, item, hh_g05, vat_rate, excise_rate) %>% 
+    mutate(group = as.character(group),
+           code = as.character(code),
+           item = as.character(item))
+  
+  curr_df <- curr_df %>% dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 3)))
+  
+  
   temp_df <- curr_df %>%
-    dplyr::left_join(vat_map,    by = "code") %>%
-    dplyr::left_join(excise_map, by = "code") %>%
+    dplyr::left_join(vat_map,    by = c("group","code","item")) %>%
+    dplyr::left_join(excise_map, by = c("group","code","item")) %>%
     # Fallback to baseline if a post value is missing
     dplyr::mutate(
-      vat_rate_new    = dplyr::coalesce(vat_rate_new,    vat_rate),
-      excise_rate_new = dplyr::coalesce(excise_rate_new, excise_rate)
+      vat_rate_new    = ifelse(is.na(vat_rate_new), vat_rate, vat_rate_new),
+      excise_rate_new = ifelse(is.na(excise_rate_new), excise_rate, excise_rate_new)
     ) %>%
-    
     select(hhid, code, hh_g05, vat_rate_new, excise_rate_new) %>% 
     # Remove indirect taxes from taxed spending to get base
     dplyr::mutate(
@@ -416,112 +446,209 @@ get_tx <- function(curr_df, vat_codes, vat_post, excise_codes, excise_post) {
       spending_wo_indirect = pre_excise / (1 + excise_rate_new)
     ) %>%
     dplyr::mutate(
-      excise = spending_wo_indirect * excise_rate_new
+      excise = spending_wo_indirect * (excise_rate_new)
     ) %>%
     dplyr::mutate(
-      vat = (spending_wo_indirect + excise) * vat_rate_new
+      vat = (spending_wo_indirect + excise) * (vat_rate_new)
     )     %>%
     dplyr::group_by(hhid) %>%
     dplyr::summarise(
-      itx_vatx_hh = sum(vat * 53,    na.rm = TRUE),  # keep your periodicity factor
-      itx_excx_hh = sum(excise* 53, na.rm = TRUE),
-      .groups = "drop"
+      itx_vatx_hh = sum(vat,    na.rm = TRUE),  # keep your periodicity factor
+      itx_excx_hh = sum(excise, na.rm = TRUE)
     ) %>%
     dplyr::mutate(
       itx_vatx_hh = ifelse(is.na(itx_vatx_hh), 0, itx_vatx_hh),
       itx_excx_hh = ifelse(is.na(itx_excx_hh), 0, itx_excx_hh)
     )
   
+  temp_df <- temp_df %>% dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 3)))
+  
   return(temp_df)
 }
 
-# 
-# # curr_df needs: hhid, pid, decile, elec_cons_m (monthly MWK, domestic), elec_enter (annual MWK, enterprise)
-# get_electricity_subsidy <- function(
-#     curr_df,
-#     elec_rate_subsidized,   # MWK/kWh (UI)
-#     elec_block1_kwh,        # kWh/month (UI)
-#     elec_rate_block2,       # MWK/kWh (UI)
-#     elec_ref_rate_block1 = 50,     # MWK/kWh, note (“without subsidies”)
-#     elec_enterprise_sub_share = 0.15  # Assumption from your doc
-# ) {
-#   tmp <- curr_df %>%
-#     dplyr::select(hhid, pid, decile, elec_cons_m, elec_enter) %>%
-#     dplyr::mutate(
-#       elec_cons_m = ifelse(is.na(elec_cons_m), 0, elec_cons_m),
-#       elec_enter  = ifelse(is.na(elec_enter),  0, elec_enter)
-#     ) %>%
-#     mutate(
-#            # Estimate monthly kWh from spending under your 2-block pricing
-#            kwh_domestic = dplyr::case_when(
-#              elec_cons_m <= elec_block1_kwh * elec_rate_subsidized ~ elec_cons_m / elec_rate_subsidized,
-#              TRUE ~ elec_block1_kwh + (elec_cons_m - elec_block1_kwh * elec_rate_subsidized) / elec_rate_block2
-#            )) %>% 
-#     mutate(
-# 
-#       # Subsidy only on block1: (reference - subsidized) * min(kWh, block1)
-#       sub_domestic_m =
-#         pmax(0, (elec_ref_rate_block1 - elec_rate_subsidized) * pmin(kwh_domestic, elec_block1_kwh))
-#       
-#     ) %>% 
-#     
-#     mutate(
-#       
-#       # Enterprise component (annual): 15% of reported enterprise electricity spending
-#       sub_enterprise_y = pmax(0, elec_enter * elec_enterprise_sub_share),
-#       
-#       # Total electricity subsidy (annual MWK)
-#       sub_electri = pmax(0, sub_domestic_m * 12 + sub_enterprise_y)
-#       
-#     ) %>% 
-#     dplyr::select(hhid, pid, decile, sub_electri)%>% 
-#     rename(sub_electri_hh = sub_electri)
-#   
-#   tmp
-# }
-# 
-# 
-# # Central place to fetch GDP (MWK) once. Replace the fallback with your baseline constant if you like.
-# get_gdp_mwk <- function() {
-#   if (!is.null(getOption("ceq.gdp_mwk"))) return(getOption("ceq.gdp_mwk"))
-#   # Fallback to your Stata constant: 8,518,000,000,000 MWK
-#   8518000000000
-# }
-# 
-# # curr_df needs: hhid, pid, decile, fuel_con (annual MWK), fuel_enter (annual MWK), optional: weight
-# get_fuel_subsidy_from_pct_gdp <- function(
-#     curr_df,
-#     fuel_subsidy_pct_gdp,    # e.g., 0.243
-#     weight_col = "weight"        # e.g., "weight"; NULL for unweighted
-# ) {
-#   gdp_mwk <- get_gdp_mwk()
-#   
-#   hh <- curr_df %>%
-#     dplyr::mutate(
-#       fuel_con   = ifelse(is.na(fuel_con),   0, fuel_con),
-#       fuel_enter = ifelse(is.na(fuel_enter), 0, fuel_enter)
-#     ) %>%
-#     dplyr::group_by(hhid) %>%
-#     dplyr::summarise(
-#       tfc1 = fuel_con + fuel_enter,
-#       w    = if (is.null(weight_col)) 1 else mean(.data[[weight_col]], na.rm = TRUE),
-#       .groups = "drop"
-#     )
-#   
-#   subsidy_total <- gdp_mwk * (fuel_subsidy_pct_gdp / 100)
-#   tfc_total     <- sum(hh$tfc1 * hh$w, na.rm = TRUE)
-#   share         <- if (tfc_total > 0) subsidy_total / tfc_total else 0
-#   
-#   hh <- hh %>%
-#     dplyr::mutate(tfc_hh = pmax(0, tfc1 * share)) %>%
-#     dplyr::select(hhid, tfc_hh)
-#   
-#   out <- curr_df %>%
-#     dplyr::select(hhid, pid, decile) %>%
-#     dplyr::distinct() %>%
-#     dplyr::left_join(hh, by = "hhid") %>%
-#     dplyr::mutate(tfc_hh = ifelse(is.na(tfc_hh), 0, tfc_hh)) %>% 
-#     rename(sub_fuel_hh = tfc_hh)
-#   
-#   out
-# }
+
+# curr_df needs: hhid, pid, decile, elec_cons_m (monthly MWK, domestic), elec_enter (annual MWK, enterprise)
+get_electricity_subsidy <- function(
+    curr_df,
+    elec_rate_subsidized,   # MWK/kWh (UI)
+    elec_block1_kwh,        # kWh/month (UI)
+    elec_rate_block2,       # MWK/kWh (UI)
+    elec_ref_rate_block1 = 50,     # MWK/kWh, note (“without subsidies”)
+    shr_sub_firm = 15  # Assumption from your doc
+) {
+  
+  tmp <- curr_df %>%
+    dplyr::mutate(
+      elec_cons_m = ifelse(is.na(elec_cons_m), 0, elec_cons_m),
+      elec_enter  = ifelse(is.na(elec_enter),  0, elec_enter),
+      elec_cons  = ifelse(is.na(elec_cons),  0, elec_cons),
+      elec_rate_subsidized = elec_rate_subsidized,
+      elec_block1_kwh = elec_block1_kwh,
+      elec_rate_block2 = elec_rate_block2,
+      elec_ref_rate_block1 = elec_ref_rate_block1,
+      shr_sub_firm = shr_sub_firm
+    ) 
+  
+
+
+    tmp <- tmp %>%
+    mutate(hh_l01 = ifelse(is.na(hh_l01),0,hh_l01),
+           hh_l02 = ifelse(is.na(hh_l02),0,hh_l02)) %>% 
+    mutate(
+      
+      EC = ifelse((elec_cons_m <= (elec_block1_kwh * elec_rate_subsidized)) & (hh_l01 != 1) & (hh_l02 != 506), 
+                  elec_cons_m/elec_rate_subsidized,
+                  ifelse(
+                    (elec_cons_m > (elec_block1_kwh * elec_rate_subsidized)) & !(hh_l01 == 1) & !(hh_l02 == 506), 
+                    elec_block1_kwh + (elec_cons_m - elec_block1_kwh * elec_rate_subsidized) / elec_rate_block2, 
+                    ifelse((hh_l01 == 1) & (hh_l02 == 506), elec_cons_m / 96, 0)
+                  ))) %>% 
+    mutate(
+      ## Cosh without subsidy
+      cwsa = ifelse(i_air == 0, EC * elec_rate_block2*12, 
+                    ifelse(i_air == 1, EC * 96*12, 0))
+    ) 
+  
+  tmp <- tmp %>%
+    mutate(
+      elec_subsidy = cwsa - elec_cons,
+      elec_enter_sub = elec_enter*shr_sub_firm/100 # For firm
+    ) %>% 
+    mutate(
+      elec_enter_sub = ifelse(is.na(elec_enter_sub), 0, elec_enter_sub),
+      elec_subsidy  = ifelse(is.na(elec_subsidy),  0, elec_subsidy)
+    ) %>%
+    mutate(sub_electri_hh = elec_enter + elec_subsidy)
+  
+  tmp
+}
+
+
+# Central place to fetch GDP (MWK) once. Replace the fallback with your baseline constant if you like.
+get_gdp_mwk <- function() {
+  if (!is.null(getOption("ceq.gdp_mwk"))) return(getOption("ceq.gdp_mwk"))
+  # Fallback to your Stata constant: 8,518,000,000,000 MWK
+  8518000000000
+}
+
+# curr_df needs: hhid, pid, decile, fuel_con (annual MWK), fuel_enter (annual MWK), optional: weight
+get_fuel_subsidy_from_pct_gdp <- function(
+    curr_df,
+    fuel_subsidy_pct_gdp    # e.g., 0.243
+) {
+  gdp_mwk <- get_gdp_mwk()
+
+
+  subsidy_total <- gdp_mwk * (fuel_subsidy_pct_gdp / 100)
+  tfc_total     <- sum(curr_df$tfc1 * curr_df$weight, na.rm = TRUE)
+  share         <- if (tfc_total > 0) subsidy_total / tfc_total else 0
+
+  curr_df <- curr_df %>%
+    dplyr::mutate(tfc_hh = pmax(0, tfc1 * share)) %>%
+    dplyr::select(hhid, tfc_hh)
+  
+  out <- curr_df %>%
+    dplyr::mutate(tfc_hh = ifelse(is.na(tfc_hh), 0, tfc_hh)) %>% 
+    rename(sub_fuel_hh = tfc_hh) 
+
+  # out <- curr_df %>%
+  #   dplyr::select(hhid, pid, decile) %>%
+  #   dplyr::left_join(hh, by = "hhid") %>%
+  #   dplyr::mutate(tfc_hh = ifelse(is.na(tfc_hh), 0, tfc_hh)) %>% 
+  #   rename(sub_fuel_hh = tfc_hh) %>% 
+  #   group_by(hhid) %>% 
+  #   dplyr::summarise(
+  #     sub_fuel_hh = sum(sub_fuel_hh,  na.rm = TRUE)
+  #   ) %>% 
+  #   select(hhid, sub_fuel_hh) 
+
+  out
+}
+
+
+
+
+get_coorporate_tx <- function(corp_tax_1, corp_tax_2, corp_tax_3, corp_tax_4, 
+                              corp_tax_5,corp_tax_6,corp_tax_7,corp_tax_8, corp_tax_9,
+                              corp_tax_10,corp_tax_11,corp_tax_12,corp_tax_13,corp_tax_14,
+                              corp_tax_15,corp_tax_16,corp_tax_17,corp_tax_18,
+                              remove_agriculture_exemption,remove_electricity_exemption) {
+  
+  
+  #browser()
+  # Assign tax rates to enterprises
+  temp_tx <- bl_df_firm %>% 
+    dplyr::select(hhid, pid, industry_sectors, hh_n09a, hh_n21a, hh_n21b, hh_n15b, hh_n40, tax_rate) %>%
+    mutate(
+      # Assign sector-specific rate
+      tax_rate_new = dplyr::case_when(
+        industry_sectors == 1 ~ corp_tax_1,
+        industry_sectors == 2 ~ corp_tax_2,
+        industry_sectors == 3 ~ corp_tax_3,
+        industry_sectors == 4 ~ corp_tax_4,
+        industry_sectors == 5 ~ corp_tax_5,
+        industry_sectors == 6 ~ corp_tax_6,
+        industry_sectors == 7 ~ corp_tax_7,
+        industry_sectors == 8 ~ corp_tax_8,
+        industry_sectors == 9 ~ corp_tax_9,
+        industry_sectors == 10 ~ corp_tax_10,
+        industry_sectors == 11 ~ corp_tax_11,
+        industry_sectors == 12 ~ corp_tax_12,
+        industry_sectors == 13 ~ corp_tax_13,
+        industry_sectors == 14 ~ corp_tax_14,
+        industry_sectors == 15 ~ corp_tax_15,
+        industry_sectors == 16 ~ corp_tax_16,
+        industry_sectors == 17 ~ corp_tax_17,
+        industry_sectors == 18 ~ corp_tax_18,
+        .default = tax_rate
+      )) 
+  
+  temp_tx <- temp_tx %>%
+    mutate(
+      tax_rate_new = ifelse((industry_sectors == 1) & (hh_n15b >= 2010) & (remove_agriculture_exemption=="No"), 0,
+                            ifelse((industry_sectors == 1) & (hh_n15b >= 2010) & (remove_agriculture_exemption=="Yes"), 15, 
+                                   ifelse((industry_sectors == 1) & (hh_n15b < 2010), 15, tax_rate_new))))
+  
+  
+  temp_tx <- temp_tx %>%
+    mutate(
+      tax_rate_new = ifelse((industry_sectors == 4) & (hh_n15b >= 2010) & (remove_electricity_exemption=="No"), 0,
+                            ifelse((industry_sectors == 4) & (hh_n15b >= 2010) & (remove_electricity_exemption=="Yes"), 15, 
+                                   ifelse((industry_sectors == 4) & (hh_n15b < 2010), 15, tax_rate_new))))
+  
+  temp_tx <- temp_tx %>%
+    #
+    mutate(tax_rate_new = ifelse((hh_n21a == 1) & (hh_n21b == 1), 30,tax_rate_new))
+  
+  temp_tx <- temp_tx %>%
+    # mutate(
+    #   tax_rate_new = ifelse(is.na(tax_rate_new), 15, tax_rate_new)
+    # )  %>%
+    mutate(tax_rate_new = ifelse((hh_n40 <= 1000), 0, tax_rate_new) %>% structure(label="Corporate tax rate"))
+  
+  
+  
+  temp_tx <- temp_tx %>% 
+    mutate(
+      tax = hh_n40 * (tax_rate_new / 100),
+      pid=1
+    ) 
+  
+  
+  
+  temp_tx <- temp_tx %>%
+    dplyr::group_by(hhid) %>%
+    mutate(
+      dtx_payt_hh = sum(tax, na.rm = TRUE) %>% structure(label="Corporate direct tax")
+    ) %>% 
+    ungroup() %>% 
+    filter(hh_n09a==1) %>% 
+    filter(!is.na(hh_n09a)) %>% 
+    dplyr::select(hhid, pid, dtx_payt_hh) %>% 
+    mutate(i_dtx_payt_hh = ifelse(dtx_payt_hh>0,1,0) %>% structure(label="HH payed corporate tax")) 
+  
+  
+  
+  temp_tx
+}
+
