@@ -3,3 +3,17 @@
 /input/do files
 /output/Shiny Data
 /shiny_app/draft1
+<<<<<<< Updated upstream
+=======
+.Rproj.user
+/input
+/input
+/output/Shapefile
+/draft
+/shiny_app/input
+/shiny_app/output
+/autre
+/shiny_app/rsconnect
+/shiny_app/rsconnect
+/shiny_app/rsconnect
+>>>>>>> Stashed changes
