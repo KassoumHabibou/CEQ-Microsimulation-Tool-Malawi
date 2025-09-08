@@ -7,7 +7,7 @@ simulate_main_df <- function(
   # PAYE
   tax_rate_lowest, tax_rate_second, tax_rate_middle, tax_rate_top,
   # Corporate
-  corp_tax_1, corp_tax_2, corp_tax_3, corp_tax_4, corp_tax_5,
+  corp_tax_1,  corp_tax_2, corp_tax_3, corp_tax_4, corp_tax_5,
   corp_tax_6, corp_tax_7, corp_tax_8, corp_tax_9, corp_tax_10,
   corp_tax_11, corp_tax_12, corp_tax_13, corp_tax_14, corp_tax_15,
   corp_tax_16, corp_tax_17, corp_tax_18,
