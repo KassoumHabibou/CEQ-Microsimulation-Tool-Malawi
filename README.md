@@ -108,7 +108,7 @@ The application requires the following R packages:
 
 1. **Clone the repository**:
    ```bash
-   git clone [repository-url]
+   git clone https://github.com/KassoumHabibou/CEQ-Microsimulation-Tool-Malawi?tab=readme-ov-file#shiny_app
    cd CEQ---assessement-tool
    ```
 
