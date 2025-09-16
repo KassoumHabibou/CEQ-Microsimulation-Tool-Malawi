@@ -151,6 +151,17 @@ ineq_mod_server <- function(id, simulated_ineq, root_session) {
         temp_data <- temp_data %>% filter(Area == input$areas_filter)
       }
       
+      temp_data <- temp_data %>% 
+        mutate(diff = round(`Post-reform` - `Pre-reform`,3)) %>% 
+        mutate(impact = diff/`Pre-reform`) %>% 
+        arrange(impact)
+      
+      temp_data <- temp_data %>% 
+        mutate(
+          impact = ifelse(dplyr::near(impact, 0, tol = 0.01), 0, impact),
+          diff = ifelse(dplyr::near(impact, 0, tol = 0.01), 0, diff),
+          `Post-reform` = ifelse(dplyr::near(impact, 0, tol = 0.01), `Pre-reform`, `Post-reform`)
+        )
       
       temp_data
     })
@@ -248,12 +259,16 @@ ineq_mod_server <- function(id, simulated_ineq, root_session) {
       req(filtered_microsim_data())
       
       df_table <- filtered_microsim_data() %>% 
-        select(Income, `Pre-reform`, `Post-reform`) %>% 
-        mutate(diff = round(`Post-reform` - `Pre-reform`,3)) %>% 
-        mutate(impact = diff/`Pre-reform`) %>% 
+        select(Income, `Pre-reform`, `Post-reform`, diff, impact) %>% 
         arrange(impact)
       
-   
+      # df_table <- df_table %>% 
+      #   mutate(
+      #     impact = ifelse(dplyr::near(impact, 0, tol = 0.01), 0, impact),
+      #     diff = ifelse(dplyr::near(impact, 0, tol = 0.01), 0, diff),
+      #     `Post-reform` = ifelse(dplyr::near(impact, 0, tol = 0.01), `Pre-reform`, `Post-reform`)
+      #   )
+      # 
       # Get the selected parameter for better column labeling
       selected_parameter <- first(filtered_microsim_data()$Parameter)
       

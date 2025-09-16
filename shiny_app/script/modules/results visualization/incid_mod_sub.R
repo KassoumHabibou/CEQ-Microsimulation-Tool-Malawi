@@ -178,8 +178,8 @@ incid_sub_mod_server <- function(id, simulated_df, root_session) {
         ungroup() %>% 
         dplyr::mutate(
           # Subsidy as % of income: weighted average sub rate within the percentile (in %)
-          relative_incidence_pct = ifelse(income_wt > 0, 100 * sub_wt / income_wt, NA_real_),
-          relative_incidence_pct_pre = ifelse(income_wt > 0, 100 * sub_wt_pre / income_wt, NA_real_),
+          relative_incidence_pct = ifelse(income_wt > 0, 100 * sub_wt / income_wt, 0),
+          relative_incidence_pct_pre = ifelse(income_wt > 0, 100 * sub_wt_pre / income_wt, 0),
           
           # Share of total Subsidy (%): share of total subes paid by this percentile (in %)
           absolute_incidence_pct = 100 * sub_wt / sum(sub_wt, na.rm = TRUE),
@@ -206,6 +206,15 @@ incid_sub_mod_server <- function(id, simulated_df, root_session) {
           sub_mean_wt_pre = round(sub_mean_wt_pre)
         )
       
+      incidence_by_percentile <- incidence_by_percentile %>% 
+        mutate(diff = round(level_sub - level_sub_pre,3)) %>% 
+        mutate(impact = diff/level_sub_pre) %>% 
+        mutate(
+          relative_incidence_pct = ifelse(dplyr::near(impact, 0, tol = 0.01), relative_incidence_pct_pre, relative_incidence_pct),
+          absolute_incidence_pct = ifelse(dplyr::near(impact, 0, tol = 0.01), absolute_incidence_pct_pre, absolute_incidence_pct),
+          level_sub = ifelse(dplyr::near(impact, 0, tol = 0.01), level_sub_pre, level_sub),
+          sub_mean_wt = ifelse(dplyr::near(impact, 0, tol = 0.01), sub_mean_wt_pre, sub_mean_wt),
+        )
       
       incidence_by_percentile
     })

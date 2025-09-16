@@ -178,8 +178,8 @@ incid_itx_mod_server <- function(id, simulated_df, root_session) {
         ungroup() %>% 
         dplyr::mutate(
           # Relative incidence: weighted average itx rate within the percentile (in %)
-          relative_incidence_pct = ifelse(income_wt > 0, 100 * itx_wt / income_wt, NA_real_),
-          relative_incidence_pct_pre = ifelse(income_wt > 0, 100 * itx_wt_pre / income_wt, NA_real_),
+          relative_incidence_pct = ifelse(income_wt > 0, 100 * itx_wt / income_wt, 0),
+          relative_incidence_pct_pre = ifelse(income_wt > 0, 100 * itx_wt_pre / income_wt, 0),
           
           # Absolute incidence: share of total itxes paid by this percentile (in %)
           absolute_incidence_pct = 100 * itx_wt / sum(itx_wt, na.rm = TRUE),
@@ -207,6 +207,15 @@ incid_itx_mod_server <- function(id, simulated_df, root_session) {
         )
       
       
+      incidence_by_percentile <- incidence_by_percentile %>% 
+        mutate(diff = round(level_itx - level_itx_pre,3)) %>% 
+        mutate(impact = diff/level_itx_pre) %>% 
+        mutate(
+          relative_incidence_pct = ifelse(dplyr::near(impact, 0, tol = 0.01), relative_incidence_pct_pre, relative_incidence_pct),
+          absolute_incidence_pct = ifelse(dplyr::near(impact, 0, tol = 0.01), absolute_incidence_pct_pre, absolute_incidence_pct),
+          level_itx = ifelse(dplyr::near(impact, 0, tol = 0.01), level_itx_pre, level_itx),
+          itx_mean_wt = ifelse(dplyr::near(impact, 0, tol = 0.01), itx_mean_wt_pre, itx_mean_wt),
+        )
       
       
       incidence_by_percentile

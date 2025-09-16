@@ -127,9 +127,7 @@ simulate_main_df <- function(
   sim_df <- sim_df %>%
     mutate(dct_hh = ifelse(is.na(dct_hh),0,dct_hh))
 
-  # after (round everything to 2 decimals)
-  #sim_df <- sim_df %>% dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 2)))
-  
+
   ######################## Near-cash transfert ##################################    
   # Build a minimal baseline slice and (optionally) filter to near-cash recipients
   temp_d4 <- get_dtr_nearcash(
@@ -186,7 +184,7 @@ simulate_main_df <- function(
   # Fuel: UI gives only % of GDP; GDP pulled via get_gdp_mwk()
   temp_fuel <- get_fuel_subsidy_from_pct_gdp(
     curr_df              = bl_df %>% 
-      dplyr::select(hhid, pid, decile, tfc1, fuel_con, fuel_enter, weight) %>% 
+      dplyr::select(hhid, pid, decile, tfc1, fuel_con, fuel_enter, weight, sub_fuel_hh) %>% 
       filter(pid==1),
     fuel_subsidy_pct_gdp = fuel_subsidy_pct_gdp
   )
@@ -226,13 +224,13 @@ simulate_main_df <- function(
       yn_hh = (yp_hh - dtx_all_hh) %>% structure(label = "Net Market Income")
     ) %>%
     mutate(
-      yd_hh = (yn_hh + dtr_all_hh) %>% structure(label = "Disposable Income")
+      yd_hh = (yp_hh - dtx_all_hh + dtr_all_hh) %>% structure(label = "Disposable Income")
     ) %>%
     mutate(
-      yc_hh = (yd_hh + sub_all_hh - itx_all_hh) %>% structure(label = "Consumable Income")
+      yc_hh = (yp_hh - dtx_all_hh + dtr_all_hh + sub_all_hh - itx_all_hh) %>% structure(label = "Consumable Income")
     ) %>%
     mutate(
-      yf_hh = (yc_hh + educ_hh + health_hh - Users_fee_hh) %>% structure(label = "Final Income")
+      yf_hh = (yp_hh - dtx_all_hh + dtr_all_hh + sub_all_hh - itx_all_hh + educ_hh + health_hh - Users_fee_hh) %>% structure(label = "Final Income")
     ) %>% 
     mutate(
       yg_hh = ifelse(yg_hh < 0, 0, yg_hh),
@@ -244,7 +242,6 @@ simulate_main_df <- function(
       
     )
   
-
   # STEP 5: Compute per capita versions of income concepts
   sim_df <- sim_df %>%
     mutate(
@@ -258,8 +255,9 @@ simulate_main_df <- function(
     mutate(pline_mod_low = 656.7*365,
            pline_mod_middle = 1115*365)
   
+ # browser()
   # Rounding numbers
-  sim_df <- sim_df %>% mutate(across(where(is.numeric), ~ round(.x, 2)))
+  #sim_df <- sim_df %>% mutate(across(where(is.numeric), ~ round(.x, 2)))
   
   return(sim_df)
 }
@@ -267,7 +265,7 @@ simulate_main_df <- function(
 
 
 get_dtr_nearcash <- function(
-    curr_df,                        
+    curr_df,
     dtr_frmz_hh_decile,  dtr_frmz_hh,
     dtr_nfra_hh_decile,  dtr_nfra_hh,
     dtr_masaf_hh_decile, dtr_masaf_hh,
@@ -277,8 +275,7 @@ get_dtr_nearcash <- function(
     dtr_tes_hh_decile,   dtr_tes_hh,
     dtr_onc_hh_decile,   dtr_onc_hh
 ) {
-  
-  # Build mapping tables (post amounts in MWK to be ADDED by decile)
+  # Delta ("add") maps by decile
   frmz_map  <- tibble::tibble(decile = dtr_frmz_hh_decile,  dtr_frmz_hh_add  = dtr_frmz_hh)
   nfra_map  <- tibble::tibble(decile = dtr_nfra_hh_decile,  dtr_nfra_hh_add  = dtr_nfra_hh)
   masaf_map <- tibble::tibble(decile = dtr_masaf_hh_decile, dtr_masaf_hh_add = dtr_masaf_hh)
@@ -287,16 +284,27 @@ get_dtr_nearcash <- function(
   ses_map   <- tibble::tibble(decile = dtr_ses_hh_decile,   dtr_ses_hh_add   = dtr_ses_hh)
   tes_map   <- tibble::tibble(decile = dtr_tes_hh_decile,   dtr_tes_hh_add   = dtr_tes_hh)
   onc_map   <- tibble::tibble(decile = dtr_onc_hh_decile,   dtr_onc_hh_add   = dtr_onc_hh)
-  
-  # Work on a minimal copy
-  temp_df <- curr_df %>%
+
+  curr_df %>%
     dplyr::select(
       hhid, pid, decile,
       dtr_frmz_hh, dtr_nfra_hh, dtr_masaf_hh, dtr_ffwk_hh,
       dtr_ifwp_hh, dtr_ses_hh,  dtr_tes_hh,   dtr_onc_hh,
       dtr_nct_hh
     ) %>%
-    # Join all add-on maps by decile
+    # Clean baseline NAs
+    dplyr::mutate(
+      dtr_frmz_hh = dplyr::coalesce(dtr_frmz_hh, 0),
+      dtr_nfra_hh = dplyr::coalesce(dtr_nfra_hh, 0),
+      dtr_masaf_hh = dplyr::coalesce(dtr_masaf_hh, 0),
+      dtr_ffwk_hh = dplyr::coalesce(dtr_ffwk_hh, 0),
+      dtr_ifwp_hh = dplyr::coalesce(dtr_ifwp_hh, 0),
+      dtr_ses_hh  = dplyr::coalesce(dtr_ses_hh,  0),
+      dtr_tes_hh  = dplyr::coalesce(dtr_tes_hh,  0),
+      dtr_onc_hh  = dplyr::coalesce(dtr_onc_hh,  0),
+      dtr_nct_hh  = dplyr::coalesce(dtr_nct_hh,  0)
+    ) %>%
+    # Join deltas
     dplyr::left_join(frmz_map,  by = "decile") %>%
     dplyr::left_join(nfra_map,  by = "decile") %>%
     dplyr::left_join(masaf_map, by = "decile") %>%
@@ -305,96 +313,145 @@ get_dtr_nearcash <- function(
     dplyr::left_join(ses_map,   by = "decile") %>%
     dplyr::left_join(tes_map,   by = "decile") %>%
     dplyr::left_join(onc_map,   by = "decile") %>%
-    # Replace NAs with 0 for both baseline and add-on columns
+    # Missing deltas -> 0
     dplyr::mutate(
-      dplyr::across(
-        c(dtr_frmz_hh, dtr_nfra_hh, dtr_masaf_hh, dtr_ffwk_hh,
-          dtr_ifwp_hh, dtr_ses_hh,  dtr_tes_hh,   dtr_onc_hh,
-          dtr_nct_hh),
-        ~ ifelse(is.na(.x), 0, .x)
-      ),
-      dplyr::across(
-        c(dtr_frmz_hh_add, dtr_nfra_hh_add, dtr_masaf_hh_add, dtr_ffwk_hh_add,
-          dtr_ifwp_hh_add, dtr_ses_hh_add,  dtr_tes_hh_add,   dtr_onc_hh_add),
-        ~ ifelse(is.na(.x), 0, .x)
-      )
+      dtr_frmz_hh_add = dplyr::coalesce(dtr_frmz_hh_add, 0),
+      dtr_nfra_hh_add = dplyr::coalesce(dtr_nfra_hh_add, 0),
+      dtr_masaf_hh_add = dplyr::coalesce(dtr_masaf_hh_add, 0),
+      dtr_ffwk_hh_add  = dplyr::coalesce(dtr_ffwk_hh_add,  0),
+      dtr_ifwp_hh_add  = dplyr::coalesce(dtr_ifwp_hh_add,  0),
+      dtr_ses_hh_add   = dplyr::coalesce(dtr_ses_hh_add,   0),
+      dtr_tes_hh_add   = dplyr::coalesce(dtr_tes_hh_add,   0),
+      dtr_onc_hh_add   = dplyr::coalesce(dtr_onc_hh_add,   0)
     ) %>%
-    # Compute new component amounts and the new total; clamp to >= 0 just in case
+    # Component rule: if add ~ 0 -> keep baseline; else baseline + add (clamped >= 0)
     dplyr::mutate(
-      dtr_frmz_hh_new  = pmax(0, dtr_frmz_hh  + dtr_frmz_hh_add),
-      dtr_nfra_hh_new  = pmax(0, dtr_nfra_hh  + dtr_nfra_hh_add),
-      dtr_masaf_hh_new = pmax(0, dtr_masaf_hh + dtr_masaf_hh_add),
-      dtr_ffwk_hh_new  = pmax(0, dtr_ffwk_hh  + dtr_ffwk_hh_add),
-      dtr_ifwp_hh_new  = pmax(0, dtr_ifwp_hh  + dtr_ifwp_hh_add),
-      dtr_ses_hh_new   = pmax(0, dtr_ses_hh   + dtr_ses_hh_add),
-      dtr_tes_hh_new   = pmax(0, dtr_tes_hh   + dtr_tes_hh_add),
-      dtr_onc_hh_new   = pmax(0, dtr_onc_hh   + dtr_onc_hh_add),
-      dtr_nct_hh_new   = pmax(0, dtr_frmz_hh_new + dtr_nfra_hh_new + dtr_masaf_hh_new + dtr_ffwk_hh_new +
-                                dtr_ifwp_hh_new + dtr_ses_hh_new  + dtr_tes_hh_new   + dtr_onc_hh_new
+      dtr_frmz_hh_new  = dplyr::if_else(dplyr::near(dtr_frmz_hh_add, 0), dtr_frmz_hh, pmax(0, dtr_frmz_hh + dtr_frmz_hh_add)),
+      dtr_nfra_hh_new  = dplyr::if_else(dplyr::near(dtr_nfra_hh_add, 0), dtr_nfra_hh, pmax(0, dtr_nfra_hh + dtr_nfra_hh_add)),
+      dtr_masaf_hh_new = dplyr::if_else(dplyr::near(dtr_masaf_hh_add, 0), dtr_masaf_hh, pmax(0, dtr_masaf_hh + dtr_masaf_hh_add)),
+      dtr_ffwk_hh_new  = dplyr::if_else(dplyr::near(dtr_ffwk_hh_add, 0), dtr_ffwk_hh, pmax(0, dtr_ffwk_hh + dtr_ffwk_hh_add)),
+      dtr_ifwp_hh_new  = dplyr::if_else(dplyr::near(dtr_ifwp_hh_add, 0), dtr_ifwp_hh, pmax(0, dtr_ifwp_hh + dtr_ifwp_hh_add)),
+      dtr_ses_hh_new   = dplyr::if_else(dplyr::near(dtr_ses_hh_add, 0),  dtr_ses_hh,  pmax(0, dtr_ses_hh  + dtr_ses_hh_add)),
+      dtr_tes_hh_new   = dplyr::if_else(dplyr::near(dtr_tes_hh_add, 0),  dtr_tes_hh,  pmax(0, dtr_tes_hh  + dtr_tes_hh_add)),
+      dtr_onc_hh_new   = dplyr::if_else(dplyr::near(dtr_onc_hh_add, 0),  dtr_onc_hh,  pmax(0, dtr_onc_hh  + dtr_onc_hh_add))
+    ) %>%
+    # Total rule: if ALL adds ~ 0 -> keep baseline total; else add sum of deltas
+    dplyr::mutate(
+      all_adds_zero = dplyr::near(dtr_frmz_hh_add, 0) & dplyr::near(dtr_nfra_hh_add, 0) &
+        dplyr::near(dtr_masaf_hh_add, 0) & dplyr::near(dtr_ffwk_hh_add, 0) &
+        dplyr::near(dtr_ifwp_hh_add, 0) & dplyr::near(dtr_ses_hh_add, 0) &
+        dplyr::near(dtr_tes_hh_add, 0)  & dplyr::near(dtr_onc_hh_add, 0),
+      dtr_nct_hh_new = dplyr::if_else(
+        all_adds_zero,
+        dtr_nct_hh,
+        pmax(0, dtr_nct_hh +
+               dtr_frmz_hh_add + dtr_nfra_hh_add + dtr_masaf_hh_add + dtr_ffwk_hh_add +
+               dtr_ifwp_hh_add + dtr_ses_hh_add  + dtr_tes_hh_add   + dtr_onc_hh_add)
       )
     ) %>%
     dplyr::select(
       hhid, pid, decile,
-      dtr_frmz_hh_new, dtr_nfra_hh_new, dtr_masaf_hh_new, dtr_ffwk_hh_new,
-      dtr_ifwp_hh_new, dtr_ses_hh_new,  dtr_tes_hh_new,   dtr_onc_hh_new,
-      dtr_nct_hh_new
-    ) %>%
-    dplyr::rename(
       dtr_frmz_hh = dtr_frmz_hh_new,
       dtr_nfra_hh = dtr_nfra_hh_new,
       dtr_masaf_hh = dtr_masaf_hh_new,
       dtr_ffwk_hh = dtr_ffwk_hh_new,
       dtr_ifwp_hh = dtr_ifwp_hh_new,
-      dtr_ses_hh = dtr_ses_hh_new,
-      dtr_tes_hh = dtr_tes_hh_new,
-      dtr_onc_hh = dtr_onc_hh_new,
-      dtr_nct_hh = dtr_nct_hh_new
+      dtr_ses_hh  = dtr_ses_hh_new,
+      dtr_tes_hh  = dtr_tes_hh_new,
+      dtr_onc_hh  = dtr_onc_hh_new,
+      dtr_nct_hh  = dtr_nct_hh_new
     )
-  
-  return(temp_df)
 }
 
 
 
+# 
+# get_dct <- function(curr_df, dct_gov_hh_decile, dct_gov_hh, dct_fips_hh_decile, dct_fips_hh) {
+#   
+# 
+#   # Build mapping tables (post rates in FRACTIONS)
+#   dct_gov_map <- tibble::tibble(
+#     decile = dct_gov_hh_decile,
+#     dct_gov_hh_new = dct_gov_hh
+#   )
+#   
+#   dct_fips_map <- tibble::tibble(
+#     decile = dct_fips_hh_decile,
+#     dct_fips_hh_new = dct_fips_hh
+#   )
+#   
+# 
+#   temp_df <- curr_df %>%
+#     select(hhid, decile, pid, dct_gov_hh, dct_fips_hh, dct_hh) 
+#  
+#   temp_df <- temp_df %>% 
+#     dplyr::left_join(dct_gov_map, by = "decile") %>%
+#     dplyr::left_join(dct_fips_map, by = "decile") %>%
+#     # Fallback to baseline if a post value is missing
+#     dplyr::mutate(
+#       dct_hh_new = (dct_hh + dct_gov_hh_new + dct_fips_hh_new),
+#       dct_gov_hh_new    = (dct_gov_hh_new + dct_gov_hh),
+#       dct_fips_hh_new = (dct_fips_hh_new + dct_fips_hh)
+#     ) %>%
+#     select(hhid, pid, decile, dct_fips_hh_new, dct_gov_hh_new, dct_hh_new) %>% 
+#     rename(dct_gov_hh = dct_gov_hh_new,
+#           dct_fips_hh = dct_fips_hh_new,
+#           dct_hh = dct_hh_new
+#           )
+#     
+#     ## Missing values
+#   temp_df <- temp_df %>%
+#     mutate(dct_gov_hh = ifelse(is.na(dct_gov_hh) | dct_gov_hh < 0, 0,dct_gov_hh),
+#            dct_fips_hh = ifelse(is.na(dct_fips_hh) | dct_fips_hh < 0 ,0,dct_fips_hh),
+#            dct_hh = ifelse(is.na(dct_hh) | dct_hh < 0 ,0,dct_hh))
+#   
+#   return(temp_df)
+# }
 
-get_dct <- function(curr_df, dct_gov_hh_decile, dct_gov_hh, dct_fips_hh_decile, dct_fips_hh) {
+get_dct <- function(curr_df,
+                    dct_gov_hh_decile, dct_gov_hh,
+                    dct_fips_hh_decile, dct_fips_hh) {
   
+  # Post-policy maps by decile (post values are always provided)
 
-  # Build mapping tables (post rates in FRACTIONS)
-  dct_gov_map <- tibble::tibble(
-    decile = dct_gov_hh_decile,
-    dct_gov_hh_new = dct_gov_hh
-  )
+  dct_gov_map  <- tibble::tibble(decile = dct_gov_hh_decile,
+                                 dct_gov_hh_add  = dct_gov_hh)
   
-  dct_fips_map <- tibble::tibble(
-    decile = dct_fips_hh_decile,
-    dct_fips_hh_new = dct_fips_hh
-  )
+  dct_fips_map <- tibble::tibble(decile = dct_fips_hh_decile,
+                                 dct_fips_hh_add = dct_fips_hh)
   
-
   temp_df <- curr_df %>%
-    select(hhid, decile, pid, dct_gov_hh, dct_fips_hh, dct_hh) 
- 
-  temp_df <- temp_df %>% 
-    dplyr::left_join(dct_gov_map, by = "decile") %>%
-    dplyr::left_join(dct_fips_map, by = "decile") %>%
-    # Fallback to baseline if a post value is missing
+    dplyr::select(hhid, pid, decile, dct_gov_hh, dct_fips_hh, dct_hh) %>%
+    # Clean baseline NAs for safe comparisons
     dplyr::mutate(
-      dct_hh_new = (dct_hh + dct_gov_hh_new + dct_fips_hh_new),
-      dct_gov_hh_new    = (dct_gov_hh_new + dct_gov_hh),
-      dct_fips_hh_new = (dct_fips_hh_new + dct_fips_hh)
+      dct_gov_hh  = ifelse(is.na(dct_gov_hh),  0, dct_gov_hh),
+      dct_fips_hh = ifelse(is.na(dct_fips_hh), 0, dct_fips_hh),
+      dct_hh      = ifelse(is.na(dct_hh),      0, dct_hh)
     ) %>%
-    select(hhid, pid, decile, dct_fips_hh_new, dct_gov_hh_new, dct_hh_new) %>% 
-    rename(dct_gov_hh = dct_gov_hh_new,
-          dct_fips_hh = dct_fips_hh_new,
-          dct_hh = dct_hh_new
-          )
-    
-    ## Missing values
-  temp_df <- temp_df %>%
-    mutate(dct_gov_hh = ifelse(is.na(dct_gov_hh) | dct_gov_hh < 0, 0,dct_gov_hh),
-           dct_fips_hh = ifelse(is.na(dct_fips_hh) | dct_fips_hh < 0 ,0,dct_fips_hh),
-           dct_hh = ifelse(is.na(dct_hh) | dct_hh < 0 ,0,dct_hh))
+    dplyr::left_join(dct_gov_map,  by = "decile") %>%
+    dplyr::left_join(dct_fips_map, by = "decile") %>%
+    # Component-level rule:
+    # If post == baseline -> keep baseline; else use post
+    dplyr::mutate(
+      dct_gov_hh_new  = ifelse(dct_gov_hh_add == 0,
+                                       dct_gov_hh,  dct_gov_hh + dct_gov_hh_add),
+      
+      dct_fips_hh_new = ifelse(dct_fips_hh_add == 0,
+                                       dct_fips_hh, dct_fips_hh + dct_fips_hh_add),
+      
+      dct_hh_new  = ifelse((dct_gov_hh_add == 0) & (dct_fips_hh_add == 0),
+                               dct_hh,  dct_hh + dct_fips_hh_add + dct_gov_hh_add)
+    ) %>% 
+    dplyr::select(
+      hhid, pid, decile,
+      dct_gov_hh_new,
+      dct_fips_hh_new,
+      dct_hh_new
+    ) %>%
+      rename(dct_gov_hh = dct_gov_hh_new,
+            dct_fips_hh = dct_fips_hh_new,
+            dct_hh = dct_hh_new
+            ) 
   
   return(temp_df)
 }
@@ -426,7 +483,7 @@ get_tx <- function(curr_df, vat_group, vat_codes, vat_name, vat_post,
            code = as.character(code),
            item = as.character(item))
   
-  curr_df <- curr_df %>% dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 3)))
+  curr_df <- curr_df %>% dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 2)))
   
   
   temp_df <- curr_df %>%
@@ -461,7 +518,7 @@ get_tx <- function(curr_df, vat_group, vat_codes, vat_name, vat_post,
       itx_excx_hh = ifelse(is.na(itx_excx_hh), 0, itx_excx_hh)
     )
   
-  temp_df <- temp_df %>% dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 3)))
+  temp_df <- temp_df %>% dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 2)))
   
   return(temp_df)
 }
@@ -541,26 +598,25 @@ get_fuel_subsidy_from_pct_gdp <- function(
 
   subsidy_total <- gdp_mwk * (fuel_subsidy_pct_gdp / 100)
   tfc_total     <- sum(curr_df$tfc1 * curr_df$weight, na.rm = TRUE)
-  share         <- if (tfc_total > 0) subsidy_total / tfc_total else 0
-
-  curr_df <- curr_df %>%
-    dplyr::mutate(tfc_hh = pmax(0, tfc1 * share)) %>%
-    dplyr::select(hhid, tfc_hh)
+ 
+  share         <- if (tfc_total > 0) round(subsidy_total / tfc_total,3) else 0
   
-  out <- curr_df %>%
-    dplyr::mutate(tfc_hh = ifelse(is.na(tfc_hh), 0, tfc_hh)) %>% 
-    rename(sub_fuel_hh = tfc_hh) 
+  if(subsidy_total!=20698740000) {
+    curr_df <- curr_df %>%
+      dplyr::mutate(tfc_hh = pmax(0, tfc1 * share)) %>%
+      dplyr::select(hhid, tfc_hh)
+    
+    out <- curr_df %>%
+      dplyr::mutate(tfc_hh = ifelse(is.na(tfc_hh), 0, tfc_hh)) %>% 
+      rename(sub_fuel_hh = tfc_hh) 
+    
+  }else{
+    
+    out <- curr_df %>%
+      dplyr::mutate(sub_fuel_hh = ifelse(is.na(sub_fuel_hh), 0, sub_fuel_hh)) %>% 
+      dplyr::select(hhid, sub_fuel_hh) 
+  }
 
-  # out <- curr_df %>%
-  #   dplyr::select(hhid, pid, decile) %>%
-  #   dplyr::left_join(hh, by = "hhid") %>%
-  #   dplyr::mutate(tfc_hh = ifelse(is.na(tfc_hh), 0, tfc_hh)) %>% 
-  #   rename(sub_fuel_hh = tfc_hh) %>% 
-  #   group_by(hhid) %>% 
-  #   dplyr::summarise(
-  #     sub_fuel_hh = sum(sub_fuel_hh,  na.rm = TRUE)
-  #   ) %>% 
-  #   select(hhid, sub_fuel_hh) 
 
   out
 }

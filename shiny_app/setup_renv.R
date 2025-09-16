@@ -13,7 +13,7 @@ all_dependencies <- c(
   # Core tidyverse infrastructure (essential for tidyverse to work)
   "ggplot2", "tibble", "stringr", "forcats", "readr", "magrittr", "glue", 
   "cli", "lifecycle", "vctrs", "pillar", "pkgconfig", "withr", "fansi",
-  "utf8", "crayon", "ellipsis", "generics", "tidyselect",
+  "utf8", "crayon", "ellipsis", "generics", "tidyselect",'plyr',
   
   # haven dependencies
   "cpp11", "readxl", "cellranger",

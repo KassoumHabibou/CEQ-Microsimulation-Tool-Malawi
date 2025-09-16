@@ -197,6 +197,14 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
           diff = (`Post-reform` - `Pre-reform`),
           impact = round((`Post-reform` - `Pre-reform`)*100/(`Pre-reform`),2))
       
+      # Correct Tolerance
+      temp_data <- temp_data %>% 
+        mutate(
+          impact = ifelse(dplyr::near(impact, 0, tol = 0.5), 0, impact),
+          diff = ifelse(dplyr::near(impact, 0, tol = 0.5), 0, diff),
+          `Post-reform` = ifelse(dplyr::near(impact, 0, tol = 0.5), `Pre-reform`, `Post-reform`)
+          )
+      
       
       temp_data <- temp_data %>% drop_na()
     })
@@ -353,6 +361,13 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
         dplyr::mutate(
           abs_change = post - pre,
           pct_change = ifelse(!is.na(pre) & pre != 0, 100 * (post - pre) / pre, NA_real_)
+        )
+      
+      ord_df <- ord_df %>% 
+        mutate(
+          pct_change = ifelse(dplyr::near(pct_change, 0, tol = 0.5), 0, pct_change),
+          abs_change = ifelse(dplyr::near(pct_change, 0, tol = 0.5), 0, abs_change),
+          post = ifelse(dplyr::near(pct_change, 0, tol = 0.5), pre, post)
         )
       
       admin_order <- ord_df %>% 

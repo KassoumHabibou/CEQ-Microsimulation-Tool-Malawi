@@ -178,8 +178,8 @@ incid_dtx_mod_server <- function(id, simulated_df, root_session) {
         ungroup() %>% 
         dplyr::mutate(
           # Relative incidence: weighted average direct taxe rate within the percentile (in %)
-          relative_incidence_pct = ifelse(income_wt > 0, 100 * dtx_wt / income_wt, NA_real_),
-          relative_incidence_pct_pre = ifelse(income_wt > 0, 100 * dtx_wt_pre / income_wt, NA_real_),
+          relative_incidence_pct = ifelse(income_wt > 0, 100 * dtx_wt / income_wt, 0),
+          relative_incidence_pct_pre = ifelse(income_wt > 0, 100 * dtx_wt_pre / income_wt, 0),
           
           # Absolute incidence: share of total direct taxes paid by this percentile (in %)
           absolute_incidence_pct = 100 * dtx_wt / sum(dtx_wt, na.rm = TRUE),
@@ -206,7 +206,15 @@ incid_dtx_mod_server <- function(id, simulated_df, root_session) {
           dtx_mean_wt_pre = round(dtx_mean_wt_pre)
         )
       
-      
+      incidence_by_percentile <- incidence_by_percentile %>% 
+        mutate(diff = round(level_dtx - level_dtx_pre,3)) %>% 
+        mutate(impact = diff/level_dtx_pre) %>% 
+        mutate(
+          relative_incidence_pct = ifelse(dplyr::near(impact, 0, tol = 0.01), relative_incidence_pct_pre, relative_incidence_pct),
+          absolute_incidence_pct = ifelse(dplyr::near(impact, 0, tol = 0.01), absolute_incidence_pct_pre, absolute_incidence_pct),
+          level_dtx = ifelse(dplyr::near(impact, 0, tol = 0.01), level_dtx_pre, level_dtx),
+          dtx_mean_wt = ifelse(dplyr::near(impact, 0, tol = 0.01), dtx_mean_wt_pre, dtx_mean_wt),
+        )
       
       
       incidence_by_percentile

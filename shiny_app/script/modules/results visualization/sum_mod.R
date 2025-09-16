@@ -300,7 +300,7 @@ sum_mod_server <- function(id, simulated_pov, simulated_geo, simulated_ineq, sim
         filter(Parameter == "Rate of poverty")  %>% 
         filter(Area == "district") %>% 
         filter(`Poverty line` == "National poverty line (454 MWK per day)") %>% 
-        filter(Income == "Disposable Income") %>% 
+        filter(Income == "Market Income plus pensions") %>% 
         select(Code_area, admin_name, `Pre-reform`, `Post-reform`) %>% 
         mutate(Diff_prop = (`Post-reform` - `Pre-reform`)*100/`Pre-reform`)
       
