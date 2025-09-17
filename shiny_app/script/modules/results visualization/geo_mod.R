@@ -156,7 +156,7 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
     #######################################################.
     # Dynamic filters ----
     #######################################################.
-
+    
     
     #######################################################.
     ## Reactive data / values ----
@@ -182,7 +182,7 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
       if(!is.null(input$geo_pov_line)) {
         temp_data <- temp_data %>% filter(`Poverty line` == input$geo_pov_line)
       }
-
+      
       if(!is.null(input$geo_income)) {
         temp_data <- temp_data %>% filter(Income == input$geo_income)
       }      
@@ -203,7 +203,11 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
           impact = ifelse(dplyr::near(impact, 0, tol = 0.5), 0, impact),
           diff = ifelse(dplyr::near(impact, 0, tol = 0.5), 0, diff),
           `Post-reform` = ifelse(dplyr::near(impact, 0, tol = 0.5), `Pre-reform`, `Post-reform`)
-          )
+        )
+      
+      # Order
+      temp_data <- temp_data %>% 
+        select(Income, Parameter,`Poverty line`, Area, Code_area, Area, admin_name, `Pre-reform`, `Post-reform`, diff, impact)
       
       
       temp_data <- temp_data %>% drop_na()
@@ -216,7 +220,7 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
     # dynamically selects shapefile and joins with map data
     map_data <- reactive({
       req(geo_data())
-
+      
       
       # get correct shapefile
       x <- switch(input$geo_pov_areas_filter,
@@ -225,7 +229,7 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
       )
       
       x <- x %>%  left_join(geo_data())
-
+      
       x
       
     })
@@ -392,7 +396,7 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
                color = hc_colors_vec[as.character(Policy)]) %>% 
         dplyr::arrange(.data$Policy, .data$admin_name)
       
-
+      
       # Decide which chart to draw
       if (identical(input$chart_view_mode, "trend")) {
         
@@ -411,23 +415,23 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
           highcharter::hc_plotOptions(series = list(marker = list(enabled = TRUE, radius = 3),
                                                     lineWidth = 3)) %>% 
           highcharter::hc_tooltip(shared = TRUE, valueDecimals = 2) 
-
+        
         
       } else {
-      # Plot using highcharter
-      hc <- highcharter::hchart(
-        plot_data_long,
-        type = "column",
-        hcaes(x = admin_name, y = Value, group = Policy)) %>% 
-        hc_colors(unname(hc_colors_vec[levels(plot_data_long$Policy)])) %>%
-        hc_xAxis(title = list(text = "Administrative area")) %>% 
-        hc_yAxis(title = list(text = "")) %>% 
-        hc_plotOptions(column = list(groupPadding = 0.1)) %>% 
-        hc_tooltip(shared = TRUE)%>%
-        hc_caption(
-          text = "Data source: Malawi Fifth Integrated Household Survey 2019-2020",
-          style = list(fontSize = "8px", color = "black")
-        ) }
+        # Plot using highcharter
+        hc <- highcharter::hchart(
+          plot_data_long,
+          type = "column",
+          hcaes(x = admin_name, y = Value, group = Policy)) %>% 
+          hc_colors(unname(hc_colors_vec[levels(plot_data_long$Policy)])) %>%
+          hc_xAxis(title = list(text = "Administrative area")) %>% 
+          hc_yAxis(title = list(text = "")) %>% 
+          hc_plotOptions(column = list(groupPadding = 0.1)) %>% 
+          hc_tooltip(shared = TRUE)%>%
+          hc_caption(
+            text = "Data source: Malawi Fifth Integrated Household Survey 2019-2020",
+            style = list(fontSize = "8px", color = "black")
+          ) }
       
       
       hc %>% 
@@ -456,8 +460,8 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
     # Global definition of value_palette
     value_palette <- reactive({
       req(map_data())
-
-        colorNumeric(palette = "RdYlGn", domain = map_data()$impact)
+      
+      colorNumeric(palette = "RdYlGn", domain = map_data()$impact)
     })
     
     
@@ -519,7 +523,7 @@ geo_pov_mod_server <- function(id, simulated_geo, root_session) {
         rename("Admin name"=admin_name,
                "Diff (Post - Pre) "= diff,
                "Impact (%)"  = impact,
-               ) %>% 
+        ) %>% 
         arrange(`Impact (%)`)
       
       reactable(temp_data,

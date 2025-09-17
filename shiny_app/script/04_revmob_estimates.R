@@ -22,7 +22,15 @@ simulate_revmob_est <- function(simulated_df) {
   sim_data_tab <- bl_revmob %>% 
     left_join(sim_data_tab, by=c("Parameter","Area"))  
   
-
+  # Order
+  sim_data_tab <- sim_data_tab %>% 
+    select(Parameter,  Area, `Pre-reform`, `Post-reform`)
+  
+  sim_data_tab <- sim_data_tab %>% 
+    mutate(
+      diff = (`Post-reform` - `Pre-reform`),
+      impact = round((`Post-reform` - `Pre-reform`)*100/(`Pre-reform`),2))
+  
   return(sim_data_tab)
 }
 
@@ -60,7 +68,7 @@ get_revmob <- function(curr_area, sim_df) {
                  values_to = "Post-reform",
                  values_drop_na = TRUE) %>% 
     mutate(`Post-reform` = round(as.numeric(`Post-reform`),2), Area = curr_area) %>% 
-    select(Parameter, `Post-reform`, Area)
+    select(Parameter, Area, `Post-reform`)
   
   return(summary_tab)
 }

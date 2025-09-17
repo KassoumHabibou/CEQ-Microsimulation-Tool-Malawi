@@ -58,191 +58,228 @@ page_navbar(
     style = "margin: 1; padding:1;",
     title = "Home",
     style = "background-color:#F2F2F2;",
-    bslib::card(
-      full_screen = FALSE,
-      card_header(
-        div(
-          style = "text-align: center; font-size: 3em; font-weight: bold; padding: 10px;",
-          "Malawi in 2019"
+    
+    # Enhanced title with primary color styling
+    # Interactive hero section with enhanced styling
+    # Compact interactive header
+    div(
+      class = "hero-section",
+      style = "
+        position: relative;
+        text-align: center; 
+        padding: 25px 20px; 
+        margin-bottom: 20px; 
+        background: linear-gradient(135deg, #1E7F84 0%, #22949A 50%, #006D77 100%);
+        border-radius: 15px; 
+        box-shadow: 0 6px 25px rgba(30, 127, 132, 0.2);
+        overflow: hidden;
+        transition: all 0.3s ease;
+      ",
+      # Animated background pattern
+      div(
+        style = "
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background-image: 
+            radial-gradient(circle at 20% 80%, rgba(255,255,255,0.08) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 50%);
+          animation: float 6s ease-in-out infinite;
+        "
+      ),
+      # Main content - compact
+      div(
+        style = "position: relative; z-index: 2;",
+        # Main title - smaller and more compact
+        h1(
+          "Malawi CEQ Microsimulation Tool",
+          style = "
+            color: white; 
+            font-size: clamp(1.8em, 4vw, 2.5em); 
+            font-weight: 600; 
+            margin: 0; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3); 
+            letter-spacing: 1px;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.2;
+          "
+        ))),
+    
+    div(
+      h2(class = "fw-bold text-primary", "Country Profile"),
+      
+      h3(class = "fw-bold", "Poverty"),
+      fluidRow(
+        column(width = 3,
+               bslib::value_box(
+                 title = "Poverty Headcount Rate",
+                 value = tags$span("50.7%", class = "fw-bold text-primary"),
+                 showcase = bs_icon("person-fill-exclamation", fill = "primary"),
+                 theme = value_box_theme(bg = "#e9f2f3", fg = "#006D77"),
+                 p("Half of Malawians lived below the national poverty line (454 MWK per day per capita).")
+               )
+        ),
+        column(width = 3,
+               bslib::value_box(
+                 title = "Extreme Poverty Rate",
+                 value = tags$span("70.1%", class = "fw-bold text-primary"),
+                 showcase = bs_icon("exclamation-triangle-fill", fill = "primary"),
+                 theme = value_box_theme(bg = "#e9f2f3", fg = "#006D77"),
+                 p("Roughly 70% of Malawians lived on less than USD 2.15 (2017 PPP) per day per capita.")
+               )
+        ),
+        
+        column(width = 3,
+               bslib::value_box(
+                 title = "Urban vs Rural Poverty",
+                 value = tags$span("Urban: 30%  Rural: 77%", class = "fw-bold text-primary"),
+                 showcase = bs_icon("house-door-fill", fill = "primary"),
+                 theme = value_box_theme(bg = "#e9f2f3", fg = "#006D77"),
+                 p("Extreme poverty is more than two times higher in rural areas.")
+               )
+        ),
+        column(width = 3,
+               bslib::value_box(
+                 title = "Food insecurity",
+                 value = tags$span("23.8%", class = "fw-bold text-primary"),
+                 showcase = bs_icon("cart4", fill = "primary"),
+                 theme = value_box_theme(bg = "#e9f2f3", fg = "#006D77"),
+                 p("One fourth of households are highly food insecure.")
+               )
         )
       ),
-      card_body(
-        div(
+      fluidRow(
         
-        h2(class = "fw-bold text-primary", "Country Profile"),
+        h3(class = "fw-bold", "Inequality & Demographics"),
         
-        h3(class = "fw-bold", "Poverty"),
-        fluidRow(
-          column(width = 3,
-                 bslib::value_box(
-                   title = "Poverty Headcount Rate",
-                   value = tags$span("50.7%", class = "fw-bold text-primary"),
-                   showcase = bs_icon("person-fill-exclamation", fill = "primary"),
-                   theme = value_box_theme(bg = "#e9f2f3", fg = "#006D77"),
-                   p("Half of Malawians lived below the national poverty line (454 MWK per day per capita).")
-                 )
-          ),
-          column(width = 3,
-                 bslib::value_box(
-                   title = "Extreme Poverty Rate",
-                   value = tags$span("70.1%", class = "fw-bold text-primary"),
-                   showcase = bs_icon("exclamation-triangle-fill", fill = "primary"),
-                   theme = value_box_theme(bg = "#e9f2f3", fg = "#006D77"),
-                   p("Roughly 70% of Malawians lived on less than USD 2.15 (2017 PPP) per day per capita.")
-                 )
-          ),
-          
-            column(width = 3,
-                    bslib::value_box(
-                    title = "Urban vs Rural Poverty",
-                    value = tags$span("Urban: 30%  Rural: 77%", class = "fw-bold text-primary"),
-                      showcase = bs_icon("house-door-fill", fill = "primary"),
-                      theme = value_box_theme(bg = "#e9f2f3", fg = "#006D77"),
-                      p("Extreme poverty is more than two times higher in rural areas.")
-                            )
-          ),
-          column(width = 3,
-                 bslib::value_box(
-                   title = "Food insecurity",
-                   value = tags$span("23.8%", class = "fw-bold text-primary"),
-                   showcase = bs_icon("cart4", fill = "primary"),
-                   theme = value_box_theme(bg = "#e9f2f3", fg = "#006D77"),
-                   p("One fourth of households are highly food insecure.")
-                 )
-          )
+        column(width = 3,
+               bslib::value_box(
+                 title = "Gini Index",
+                 value = tags$span("0.39", class = "fw-bold"),
+                 showcase = bs_icon("bar-chart-fill"), 
+                 theme = value_box_theme(bg = "#e6f2fd", fg = "#0078D4"),
+                 p("Income inequality declined to around 0.39 from 0.45 in 2010.")
+               )
         ),
-        fluidRow(
-          
-          h3(class = "fw-bold", "Inequality & Demographics"),
-          
-          column(width = 3,
-                 bslib::value_box(
-                   title = "Gini Index",
-                   value = tags$span("0.39", class = "fw-bold"),
-                   showcase = bs_icon("bar-chart-fill"), 
-                   theme = value_box_theme(bg = "#e6f2fd", fg = "#0078D4"),
-                   p("Income inequality declined to around 0.39 from 0.45 in 2010.")
-                 )
-          ),
-          column(width = 3,
-                 bslib::value_box(
-                   title = "90/10 Income Ratio",
-                   value = tags$span("8.6", class = "fw-bold"),
-                   showcase = bs_icon("cash-coin"), 
-                   theme = value_box_theme(bg = "#e6f2fd", fg = "#0078D4"),
-                   p("The richest 10% earned about 9 times more than the poorest 10%.")
-                 )
-          ),
-          column(width = 3,
-                 bslib::value_box(
-                   title = "Dependency Ratio",
-                   value = tags$span("1.2", class = "fw-bold"),
-                   showcase = bs_icon("people-fill", fill = "primary"),
-                   theme = value_box_theme(bg = "#e6f2fd", fg = "#0078D4"),
-                   p("There were about 1.2 dependents for every working‑age.")
-                 )
-          ),
-          column(width = 3,
-                 bslib::value_box(
-                   title = "Population Size",
-                   value = tags$span("18.6 million", class = "fw-bold"),
-                   showcase = bs_icon("person-vcard-fill", fill = "primary"),
-                   theme = value_box_theme(bg = "#e6f2fd", fg = "#0078D4"),
-                   p("The population was estimated to 18.6 million with 84% living in rural areas.")
-                 )
-          ))),
+        column(width = 3,
+               bslib::value_box(
+                 title = "90/10 Income Ratio",
+                 value = tags$span("8.6", class = "fw-bold"),
+                 showcase = bs_icon("cash-coin"), 
+                 theme = value_box_theme(bg = "#e6f2fd", fg = "#0078D4"),
+                 p("The richest 10% earned about 9 times more than the poorest 10%.")
+               )
+        ),
+        column(width = 3,
+               bslib::value_box(
+                 title = "Dependency Ratio",
+                 value = tags$span("1.2", class = "fw-bold"),
+                 showcase = bs_icon("people-fill", fill = "primary"),
+                 theme = value_box_theme(bg = "#e6f2fd", fg = "#0078D4"),
+                 p("There were about 1.2 dependents for every working‑age.")
+               )
+        ),
+        column(width = 3,
+               bslib::value_box(
+                 title = "Population Size",
+                 value = tags$span("18.6 million", class = "fw-bold"),
+                 showcase = bs_icon("person-vcard-fill", fill = "primary"),
+                 theme = value_box_theme(bg = "#e6f2fd", fg = "#0078D4"),
+                 p("The population was estimated to 18.6 million with 84% living in rural areas.")
+               )
+        ))),
+    
+    tags$hr(),
+    
+    # ---------- Group 2 ----------
+    div(
+      h2(class = "fw-bold text-primary", "Government budget sources and uses"),
+      
+      h3(class = "fw-bold", "Revenue sources"),
+      fluidRow(
+        # Total tax revenue
+        column(width = 3,
+               bslib::value_box(
+                 title = "Tax Revenue",
+                 value = tags$span("11.6%", class = "fw-bold"),
+                 showcase = bs_icon("wallet", fill = "primary"),
+                 theme = value_box_theme(bg = "#F0EFF3", fg = "#6B5C85"),
+                 p("Tax-to-GDP was about 11.6% ≈ 1,225 billion MWK.")
+               )
+        ),
         
-        tags$hr(),
+        # Mix: Direct taxes
+        column(width = 3,
+               bslib::value_box(
+                 title = "Direct taxes",
+                 value = tags$span("41%", class = "fw-bold"),
+                 showcase = bs_icon("bank2", fill = "primary"),
+                 theme = value_box_theme(bg = "#F0EFF3", fg = "#6B5C85"),
+                 p("About 41% of total tax revenue (PAYE and coorporate income taxes).")
+               )
+        ),
         
-        # ---------- Group 2 ----------
-        div(
-          h2(class = "fw-bold text-primary", "Government budget sources and uses"),
-          
-          h3(class = "fw-bold", "Revenue sources"),
-          fluidRow(
-            # Total tax revenue
-            column(width = 3,
-                   bslib::value_box(
-                     title = "Tax Revenue",
-                     value = tags$span("11.6%", class = "fw-bold"),
-                     showcase = bs_icon("wallet", fill = "primary"),
-                     theme = value_box_theme(bg = "#F0EFF3", fg = "#6B5C85"),
-                     p("Tax-to-GDP was about 11.6% ≈ 1,225 billion MWK.")
-                   )
-            ),
-            
-            # Mix: Direct taxes
-            column(width = 3,
-                   bslib::value_box(
-                     title = "Direct taxes",
-                     value = tags$span("41%", class = "fw-bold"),
-                     showcase = bs_icon("bank2", fill = "primary"),
-                     theme = value_box_theme(bg = "#F0EFF3", fg = "#6B5C85"),
-                     p("About 41% of total tax revenue (PAYE and coorporate income taxes).")
-                   )
-            ),
-            
-            # Indirect taxes (kept)
-            column(width = 3,
-                   bslib::value_box(
-                     title = "Indirect taxes",
-                     value = tags$span("59%", class = "fw-bold"),
-                     showcase = bs_icon("cart-check", fill = "primary"),
-                     theme = value_box_theme(bg = "#F0EFF3", fg = "#6B5C85"),
-                     p("About 59% of total tax revenue (VAT and excises).")
-                   )
-            ),
-            #  VAT 
-            column(width = 3,
-                   bslib::value_box(
-                     title   = "VAT",
-                     value   = tags$span("55%", class = "fw-bold"),
-                     showcase = bs_icon("receipt", fill = "primary"),
-                     theme   = value_box_theme(bg = "#F0EFF3", fg = "#6B5C85"),
-                     p("VAT represents the largest tax source ≈ 55% of total tax revenue.")
-                   )
-            )
-
-          ),
-          h3(class = "fw-bold", "Transfers & Subsidies"),
-          # Uses: transfers & subsidies
-          fluidRow(
-            column(width = 3,
-                   bslib::value_box(
-                     title = "Transfer payments",
-                     value = tags$span("4.06%", class = "fw-bold"),
-                     showcase = bs_icon("currency-exchange", fill = "primary"),
-                     theme = value_box_theme(bg = "#fff7f0", fg = "#6b4b00"),
-                     p("Transfers account for 4.06% of GDP ≈ 428 billion MWK.")
-                   )
-            ),
-            column(width = 3,
-                   bslib::value_box(
-                     title = "Direct Transfers",
-                     value = tags$span("64%", class = "fw-bold"),
-                     showcase = bs_icon("cash-stack", fill = "primary"),
-                     theme = value_box_theme(bg = "#fff7f0", fg = "#6b4b00"),
-                     p("Direct transfers (cash and near-cash) make up 64% of all transfers.")
-                   )
-            ),
-            column(width = 3,
-                   bslib::value_box(
-                     title = "Subsidies",
-                     value = tags$span("36%", class = "fw-bold"),
-                     showcase = bs_icon("droplet-half", fill = "primary"),
-                     theme = value_box_theme(bg = "#fff7f0", fg = "#6b4b00"),
-                     p("Electricity and fuel subsidies represent 36% of total transfers.")
-                   )
-            ),
-            column(width = 3,
-                   bslib::value_box(
-                     title = "Direct cash transfers",
-                     value = tags$span("42%", class = "fw-bold"),
-                     showcase = bs_icon("gift", fill = "primary"),
-                     theme = value_box_theme(bg = "#fff7f0", fg = "#6b4b00"),
-                     p("Cash transfers account for 42% of all government transfer spending.")
-                   )
-            ))),
+        # Indirect taxes (kept)
+        column(width = 3,
+               bslib::value_box(
+                 title = "Indirect taxes",
+                 value = tags$span("59%", class = "fw-bold"),
+                 showcase = bs_icon("cart-check", fill = "primary"),
+                 theme = value_box_theme(bg = "#F0EFF3", fg = "#6B5C85"),
+                 p("About 59% of total tax revenue (VAT and excises).")
+               )
+        ),
+        #  VAT 
+        column(width = 3,
+               bslib::value_box(
+                 title   = "VAT",
+                 value   = tags$span("55%", class = "fw-bold"),
+                 showcase = bs_icon("receipt", fill = "primary"),
+                 theme   = value_box_theme(bg = "#F0EFF3", fg = "#6B5C85"),
+                 p("VAT represents the largest tax source ≈ 55% of total tax revenue.")
+               )
+        )
+        
+      ),
+      h3(class = "fw-bold", "Transfers & Subsidies"),
+      # Uses: transfers & subsidies
+      fluidRow(
+        column(width = 3,
+               bslib::value_box(
+                 title = "Transfer payments",
+                 value = tags$span("4.06%", class = "fw-bold"),
+                 showcase = bs_icon("currency-exchange", fill = "primary"),
+                 theme = value_box_theme(bg = "#fff7f0", fg = "#6b4b00"),
+                 p("Transfers account for 4.06% of GDP ≈ 428 billion MWK.")
+               )
+        ),
+        column(width = 3,
+               bslib::value_box(
+                 title = "Direct Transfers",
+                 value = tags$span("64%", class = "fw-bold"),
+                 showcase = bs_icon("cash-stack", fill = "primary"),
+                 theme = value_box_theme(bg = "#fff7f0", fg = "#6b4b00"),
+                 p("Direct transfers (cash and near-cash) make up 64% of all transfers.")
+               )
+        ),
+        column(width = 3,
+               bslib::value_box(
+                 title = "Subsidies",
+                 value = tags$span("36%", class = "fw-bold"),
+                 showcase = bs_icon("droplet-half", fill = "primary"),
+                 theme = value_box_theme(bg = "#fff7f0", fg = "#6b4b00"),
+                 p("Electricity and fuel subsidies represent 36% of total transfers.")
+               )
+        ),
+        column(width = 3,
+               bslib::value_box(
+                 title = "Direct cash transfers",
+                 value = tags$span("42%", class = "fw-bold"),
+                 showcase = bs_icon("gift", fill = "primary"),
+                 theme = value_box_theme(bg = "#fff7f0", fg = "#6b4b00"),
+                 p("Cash transfers account for 42% of all government transfer spending.")
+               )
+        ))),
+    
         div(
           fluidRow(
           nav_panel(
@@ -289,7 +326,6 @@ page_navbar(
             )
           )
         )
-        )
         ),
         hr(),
         fluidRow(
@@ -311,7 +347,6 @@ page_navbar(
             )
           )
         )
-      )
     ),
   ############################################.
   # Policy choice TAB ----

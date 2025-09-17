@@ -27,6 +27,14 @@ simulate_ineq_est <- function(simulated_df) {
   sim_data_tab <- bl_ineq %>% 
     left_join(sim_data_tab, by=c("Income","Parameter","Area")) 
   
+  # Order
+  sim_data_tab <- sim_data_tab %>% 
+    select(Income, Parameter,  Area, `Pre-reform`, `Post-reform`)
+  
+  sim_data_tab <- sim_data_tab %>% 
+    mutate(
+      diff = (`Post-reform` - `Pre-reform`),
+      impact = round((`Post-reform` - `Pre-reform`)*100/(`Pre-reform`),2))
   
   return(sim_data_tab)
 }

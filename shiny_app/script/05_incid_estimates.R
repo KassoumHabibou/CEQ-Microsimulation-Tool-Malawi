@@ -197,6 +197,9 @@ simulate_inci_est <- function(
                                    pline_mod_middle = "Middle income class poverty line (1115 MKW per day)")
     )
   
+  # Order
+  sim_data_tab <- sim_data_tab %>% 
+    select(Income, Parameter,  Area, `Poverty line`, `Pre-reform`, `Post-reform`)
   
   return(sim_data_tab)
 }

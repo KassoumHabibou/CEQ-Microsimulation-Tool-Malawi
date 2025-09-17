@@ -163,6 +163,10 @@ ineq_mod_server <- function(id, simulated_ineq, root_session) {
           `Post-reform` = ifelse(dplyr::near(impact, 0, tol = 0.01), `Pre-reform`, `Post-reform`)
         )
       
+      # Order
+      temp_data <- temp_data %>% 
+        select(Income, Parameter,  Area, `Pre-reform`, `Post-reform`, diff, impact)
+      
       temp_data
     })
     

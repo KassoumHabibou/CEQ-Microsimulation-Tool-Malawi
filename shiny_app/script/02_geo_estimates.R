@@ -165,6 +165,7 @@ get_geo_pov_indicator <- function(curr_pline, curr_df) {
            `Post-reform` = round(as.numeric(`Post-reform`),2),
            `Poverty line` = curr_pline) 
   
+  
   return(summary_tab)
 }
 

@@ -180,6 +180,10 @@ pov_mod_server <- function(id, simulated_pov, root_session) {
           `Post-reform` = ifelse(dplyr::near(impact, 0, tol = 0.5), `Pre-reform`, `Post-reform`)
         )
       
+      # Order
+      temp_data <- temp_data %>% 
+        select(Income, Parameter,`Poverty line`, Area,  `Pre-reform`, `Post-reform`, diff, impact)
+      
       temp_data
     })
 
@@ -281,19 +285,11 @@ pov_mod_server <- function(id, simulated_pov, root_session) {
       
 
       df_table <- filtered_microsim_data() %>% 
-        # select(Income, `Pre-reform`, `Post-reform`) %>% 
         # mutate(diff = `Post-reform` - `Pre-reform`) %>% 
         # mutate(impact = diff*100/`Pre-reform`) %>% 
-        # select(Income, `Pre-reform`, `Post-reform`, diff, impact) %>% 
+        select(Income, `Pre-reform`, `Post-reform`, diff, impact) %>% 
         arrange(impact)
         
-    
-      # df_table <- df_table %>% 
-      #   mutate(
-      #     impact = ifelse(dplyr::near(impact, 0, tol = 0.5), 0, impact),
-      #     diff = ifelse(dplyr::near(impact, 0, tol = 0.5), 0, diff),
-      #     `Post-reform` = ifelse(dplyr::near(impact, 0, tol = 0.5), `Pre-reform`, `Post-reform`)
-      #   )
       
       # Get the selected parameter for better column labeling
       selected_parameter <- first(filtered_microsim_data()$Parameter)

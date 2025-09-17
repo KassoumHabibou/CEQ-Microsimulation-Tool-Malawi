@@ -145,6 +145,10 @@ get_pov_indicator <- function(curr_pline, curr_area, df) {
     Area = curr_area,
     `Poverty line` = curr_pline) 
   
+  # Order output
+  summary_tab <- summary_tab %>% 
+    select(Income, Parameter, Area, `Poverty line`, `Pre-reform`,`Post-reform`)
+  
   return(summary_tab)
 }
 

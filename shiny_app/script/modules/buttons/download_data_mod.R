@@ -15,7 +15,9 @@ download_data_btns_ui <- function(id, size = "sm") {
   shinyWidgets::dropdownButton(
     label = "Download data", icon = icon("download"), circle = FALSE, status = 'download', size = size,
     shiny::downloadLink(ns("downloadCSV"), label = "as CSV"),
+    shiny::downloadLink(ns("downloadStata"), label = "as DTA"),
     shiny::downloadLink(ns("downloadRDS"), label = "as RDS")
+
   )
 }
 
@@ -27,7 +29,7 @@ download_data_btns_ui <- function(id, size = "sm") {
 # selectedColumns = vector of column names to include in data download (if required)
 # file_name = name of downloaded file
 
-download_data_btns_server <- function(id, data, file_name) {
+download_data_btns_server <- function(id, data, selected_columns = NULL, file_name) {
   moduleServer(id, function(input, output, session) {
     
     dataset <- reactive({
@@ -37,13 +39,22 @@ download_data_btns_server <- function(id, data, file_name) {
         data <- as.data.frame(data())
       }
       
+      
+      # Select (and rename columns) if selected_columns arg is in use
+      # otherwise download entire df
+      if(!is.null(selected_columns)){
+        data <- data  %>% 
+          select(all_of(selected_columns))
+      } else {
+        data
+      }
     })
     
     # download as csv
     output$downloadCSV <- downloadHandler(
-      filename = paste0(file_name, "_", Sys.Date(), ".csv"),
+      filename = paste0(file_name, "_Malawi_", Sys.Date(), ".csv"),
       content = function(file) {
-        write.csv(as.data.frame(dataset()), paste0(file_name, "_Malawi_", Sys.Date()), row.names = FALSE)
+        write.csv(as.data.frame(dataset()), file, row.names = FALSE)
       }
     )
     
@@ -54,6 +65,16 @@ download_data_btns_server <- function(id, data, file_name) {
         saveRDS(dataset(), file)
       }
     )
+    
+    
+    # download as DTA
+    output$downloadStata<- downloadHandler(
+      filename = paste0(file_name, "_Malawi_", Sys.Date(), ".dta"),
+      content = function(file) {
+        haven::write_dta(dataset(), file)
+      }
+    )
+    
     
   })
 }
